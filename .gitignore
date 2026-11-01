@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets and local access
+*.kubeconfig
+kubeconfig
+.env
+*.pem
+id_*
+!*.pub
+
+# Ansible
+*.retry
+
+# Claude Code personal settings
+.claude/settings.local.json
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

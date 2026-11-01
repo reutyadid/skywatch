@@ -40,14 +40,14 @@ skywatch/
 │       ├── requirements.txt         # pip: ansible-core, kubernetes (pinned)
 │       ├── requirements.yml         # galaxy: kubernetes.core (pinned)
 │       ├── inventory/
-│       │   ├── hosts.yml            # *.mshome.net names (static or generated: decided by the spike)
+│       │   ├── hosts.yml            # *.mshome.net names (static or generated: decided by the stage 6 checks)
 │       │   └── group_vars/
 │       │       └── all.yml          # pinned versions: K3s, ArgoCD chart
 │       ├── playbooks/
 │       │   ├── site.yml             # full bring-up
 │       │   └── verify.yml           # checks requirements against the cluster
 │       └── roles/
-│           ├── common/              # only what the spike proved necessary
+│           ├── common/              # only what the stage 6 checks proved necessary
 │           ├── k3s_server/          # install pinned K3s, taint, tls-san
 │           ├── k3s_agent/           # join workers with token read from the server
 │           ├── kubeconfig/          # fetch to WSL, replace 127.0.0.1
@@ -114,7 +114,10 @@ make test      pytest for both services
 
 ## Host setup (before stage 1)
 - [x] RAM: 24 GB installed (16 + 8), 21.9 GB usable
-- [ ] `.wslconfig`: `networkingMode=mirrored`, `memory=6GB`, `processors=4`, then `wsl --shutdown`
+- [x] `.wslconfig`: `networkingMode=mirrored`, `memory=4GB`, `processors=4`
+- [ ] Raise to `memory=6GB` at stage 4 (Docker builds), then `wsl --shutdown`
+- [x] `make` installed in WSL
+- [x] `python3.12-venv` installed in WSL
 - [x] Project lives in the WSL filesystem (`~/projects/skywatch`), not under `/mnt/c`
 
 ## Stage 6: checks before writing any role
@@ -131,7 +134,7 @@ Done right after `create-vms.sh` and `cloud-init/base.yaml` work.
 ## Rules while working
 - Git: stages 1–4 on `dev`. Stage 5 starts with one PR `dev` → `main`. After that, commit directly to `main`.
 - Every problem → entry in `docs/troubleshooting.md` as soon as it is solved (symptom, cause, fix).
-- Small commits, one logical change each, conventional messages. The author commits, never the AI.
+- Small commits, one logical change each, in Git's standard style. The author commits, never the AI.
 - From stage 8 on: no manual `kubectl apply` / `helm` for the app or monitoring.
 
 ## Review-session drills (before submitting)

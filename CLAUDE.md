@@ -71,4 +71,6 @@ make test      # pytest for both services
 - Git: stages 1–4 on `dev`; merged to `main` by one PR at the CI stage; after that, directly on `main`.
 - **Never run `git commit` or `git push` yourself.** When a change is ready, stop, list the files
   changed and propose a commit message. The author reviews and commits.
-- Proposed commits are small, one logical change each, conventional messages (`feat:`, `fix:`, `docs:`, `ci:`).
+- Proposed commits are small, one logical change each, in Git's standard style: no type prefix,
+  capitalized, imperative mood, no final period, subject under 50 characters. If more detail is
+  needed, add a blank line and a body wrapped at 72 characters explaining what and why.

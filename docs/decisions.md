@@ -86,8 +86,8 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   ---------------------------------------------
   Total:               ~18-19 GB  ->  ~3 GB headroom
   ```
-- **WSL:** 6 GB during stages 1–5 (Docker builds, no VMs running), lowered to 4 GB from stage 6.
-  It then only runs Ansible, kubectl and helm. WSL tends to hold memory as page cache, so a lower cap
+- **WSL:** 4 GB during stages 1–3 (Flask and pytest only), 6 GB during stages 4–5 (Docker builds,
+  no VMs running), back to 4 GB from stage 6. It then only runs Ansible, kubectl and helm. WSL tends to hold memory as page cache, so a lower cap
   protects the VMs. Docker Desktop runs inside WSL, so it is turned off while the cluster runs.
 - **Why:** 24 GB installed, 21.9 GB usable (the integrated Radeon Vega GPU takes ~2 GB).
   The CPU is still a 4-core / 8-thread laptop CPU, so expect slow syncs.
@@ -249,7 +249,8 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   merged into `main` through one PR, which also shows the PR checks (lint + test + build, no push).
   From then on, work goes directly to `main` with small commits, because the pipeline and ArgoCD
   both run from `main` and every push must be tested end to end.
-- **Commits:** one logical change each, conventional messages (`feat:`, `fix:`, `docs:`, `ci:`).
+- **Commits:** one logical change each, in Git's standard style: no type prefix, capitalized,
+  imperative mood, no final period, subject under 50 characters, optional body wrapped at 72.
 - **Problems:** documented in `docs/troubleshooting.md` as soon as they are solved. No GitHub Issues:
   for a one-person project they add overhead without value.
 - **Why not a single PR at the end:** CI and GitOps would only be tested at the last moment.
