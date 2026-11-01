@@ -26,3 +26,11 @@ Format for each entry:
   `ruff check apps` from the repo root.
 - **Cause:** from the root, ruff cannot tell that `app` is our own module, so it sorts it as a third-party package.
 - **Fix:** run ruff from the service folder, as `make lint` does.
+
+## A stopped backend shows "took too long" locally
+- **Symptom:** with the backend stopped, the frontend waits the full 10s and returns 504, not an
+  immediate 502 "unavailable".
+- **Cause:** on this WSL setup (`networkingMode=mirrored`), a connection to any closed `127.0.0.1`
+  port hangs instead of being refused, so `requests` reports a timeout. `[::1]` refuses immediately.
+- **Fix:** none needed; the frontend handles both cases. To test the 502 locally, run it with
+  `BACKEND_URL=http://[::1]:8000` while the backend is stopped.
