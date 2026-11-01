@@ -9,10 +9,10 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 |----|-------------|-------|-------|--------|
 | R1.1 | Two small services in Python (or Go) | `apps/frontend`, `apps/backend` | Repo layout | [ ] |
 | R1.2 | Flask frontend: city input, shows current temperature and conditions | `apps/frontend/app.py`, `templates/` | Screenshot of a result in the browser | [ ] |
-| R1.3 | Backend HTTP API: takes a city, calls Open-Meteo (geocoding + forecast), returns the result | `apps/backend/app.py` | `curl` to the backend endpoint returns JSON | [ ] |
-| R1.4 | Backend health endpoint | `apps/backend/app.py` (`/healthz`) | `curl /healthz` returns 200 | [ ] |
+| R1.3 | Backend HTTP API: takes a city, calls Open-Meteo (geocoding + forecast), returns the result | `apps/backend/app.py` | `curl` to the backend endpoint returns JSON | [x] |
+| R1.4 | Backend health endpoint | `apps/backend/app.py` (`/healthz`) | `curl /healthz` returns 200 | [x] |
 | R1.5 | Minimal code | Both services | Review | [ ] |
-| R1.6 | Configuration from environment variables (incl. backend URL) | `app.py` config section, ConfigMaps | `grep os.getenv`, ConfigMap contents | [ ] |
+| R1.6 | Configuration from environment variables (incl. backend URL) | `app.py` config section, ConfigMaps | `grep os.getenv`, ConfigMap contents | [~] |
 
 ## 2. Cluster provisioning (Path A)
 

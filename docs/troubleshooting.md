@@ -20,3 +20,9 @@ Format for each entry:
 - **Symptom:** `sudo: a terminal is required to read the password`.
 - **Cause:** the `!` prefix runs the command without a terminal, so `sudo` cannot ask for the password.
 - **Fix:** run `sudo` commands in a separate WSL terminal.
+
+## ruff reports unsorted imports in the tests
+- **Symptom:** `I001 Import block is un-sorted` on `from app import app` when running
+  `ruff check apps` from the repo root.
+- **Cause:** from the root, ruff cannot tell that `app` is our own module, so it sorts it as a third-party package.
+- **Fix:** run ruff from the service folder, as `make lint` does.
