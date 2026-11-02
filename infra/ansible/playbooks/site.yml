@@ -1,4 +1,15 @@
 # Full cluster bring-up. Safe to run again: a second run on a healthy cluster changes nothing.
+
+# The VMs are created outside Ansible (create-vms.sh), and their names can take a moment to
+# resolve. No facts here: gathering them needs the very connection this play waits for.
+- name: Wait until every VM answers over SSH
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
 - name: Install the K3s server
   hosts: server
   become: true
