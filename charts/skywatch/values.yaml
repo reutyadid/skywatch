@@ -3,8 +3,8 @@
 backend:
   image:
     repository: ghcr.io/reutyadid/skywatch-backend
-    tag: ""
+    tag: "7c45b059e4bceab2262222d45c2fb9716a0c6c1b"
 frontend:
   image:
     repository: ghcr.io/reutyadid/skywatch-frontend
-    tag: ""
+    tag: "7c45b059e4bceab2262222d45c2fb9716a0c6c1b"
