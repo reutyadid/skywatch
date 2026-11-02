@@ -104,8 +104,8 @@ make test      pytest for both services
 | 5 | CI | PR `dev` → `main` shows PR checks; push to `main` → GHCR (public) with SHA → values bumped → exactly one run | R3.2–R3.7 |
 | 6 | Cluster (Ansible) | Start-of-stage checks pass; 3 nodes Ready; no app pods on the server; second run `changed=0`; kubectl from WSL | R2.1–R2.7 |
 | 7 | Helm | One manual install works (last manual helm for the app, ever) | R4.1–R4.7 |
-| 8 | ArgoCD | `bootstrap_secrets` + `argocd` roles; manual release removed; push reaches cluster | R5.1–R5.4, R4.8, B2 |
-| 9 | Observability | Targets UP, dashboard, alerts | B1–B1.3 |
+| 8 | ArgoCD | `argocd` role; manual release removed; push reaches cluster | R5.1–R5.4, R4.8, B2 |
+| 9 | Observability | `bootstrap_secrets` role; targets UP, dashboard, alerts | B1–B1.3 |
 | 10 | Bring-up + verify | `make down && make up` works twice in a row; `make verify` green | R2.5, all |
 | 11 | Docs + proof | README complete; screenshots; GitOps recording | S2–S6 |
 | 12 | Stranger test | Fresh clone, fresh VMs, README only | S2 |

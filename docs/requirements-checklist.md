@@ -49,17 +49,17 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | R4.5 | Configuration via values and ConfigMaps, not hardcoded in images | `values.yaml`, `*-configmap.yaml` | Change a value, see it applied without a rebuild | [ ] |
 | R4.6 | Readiness and liveness probes on every container | Deployments | `verify.yml` | [x] |
 | R4.7 | Resource requests and limits on every container | Deployments | `verify.yml` | [x] |
-| R4.8 | No plaintext secrets in Git | `roles/bootstrap_secrets`, K3s token read at run time | `git grep` finds no secret values | [ ] |
+| R4.8 | No plaintext secrets in Git | `roles/bootstrap_secrets`, K3s token read at run time | `git grep` finds no secret values | [x] |
 | R4.9 | Secret handling approach explained | `docs/decisions.md` D-008, D-023, README | Document | [ ] |
 
 ## 5. GitOps with ArgoCD
 
 | ID | Requirement | Where | Proof | Status |
 |----|-------------|-------|-------|--------|
-| R5.1 | ArgoCD installed in the cluster | `roles/argocd` (Helm), `argocd/values.yaml` | `kubectl get pods -n argocd` | [ ] |
-| R5.2 | `Application` deploys the chart from the repo | `argocd/apps/skywatch.yaml` | ArgoCD UI shows the app | [ ] |
-| R5.3 | Automated sync with prune and self-heal | `syncPolicy` | Delete a resource manually, it comes back | [ ] |
-| R5.4 | Push to `main` reaches the cluster with no manual commands | CI + ArgoCD | Recording of a commit rolling out | [ ] |
+| R5.1 | ArgoCD installed in the cluster | `roles/argocd` (Helm), `argocd/values.yaml` | `kubectl get pods -n argocd` | [x] |
+| R5.2 | `Application` deploys the chart from the repo | `argocd/apps/skywatch.yaml` | ArgoCD UI shows the app | [x] |
+| R5.3 | Automated sync with prune and self-heal | `syncPolicy` | Delete a resource manually, it comes back | [x] |
+| R5.4 | Push to `main` reaches the cluster with no manual commands | CI + ArgoCD | Recording of a commit rolling out | [~] |
 
 ## Bonus (chosen)
 
@@ -69,7 +69,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | B1.1 | App metrics: request count and latency | `prometheus_client` in both apps, ServiceMonitor | Prometheus targets UP, query returns data | [ ] |
 | B1.2 | Dashboard (as code) | `grafana-dashboard.yaml` | Dashboard screenshot | [ ] |
 | B1.3 | Alerts | `prometheusrule.yaml` | Rules visible in Prometheus | [ ] |
-| B2 | ArgoCD app-of-apps for add-ons | `argocd/root-app.yaml` | ArgoCD UI tree | [ ] |
+| B2 | ArgoCD app-of-apps for add-ons | `argocd/root-app.yaml` | ArgoCD UI tree | [x] |
 | B3 | Ingress / Gateway API via Traefik instead of NodePort (end, if time) | TBD | Browser via hostname | [ ] |
 
 ## Submission

@@ -216,6 +216,13 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   the official `argo/argo-cd` chart with `kubernetes.core.helm`, using `argocd/values.yaml` and a version
   pinned in `group_vars`. It then applies `argocd/root-app.yaml`, which manages `apps/skywatch.yaml`
   and `apps/monitoring.yaml`. Automated sync, prune, self-heal.
+- **Built in stage 8:** chart `argo-cd` 10.11.6 (ArgoCD v3.5.6) with `kubernetes.core` 6.6.0 (Helm v4
+  support since 6.4.0). The play runs on `localhost` with `.venv-ansible`'s Python, where the
+  `kubernetes` library lives. Dex and notifications are off. The UI is reached with
+  `kubectl port-forward`. The `bootstrap_secrets` role arrives with monitoring in stage 9.
+- **Why Ansible for the bootstrap:** installing ArgoCD once with an outside tool, then letting it
+  manage everything from Git, is the usual pattern; the tool varies (Terraform in the cloud, Ansible
+  when Ansible already builds the cluster). It keeps `make cluster` one idempotent command.
 - **Boundary:** Ansible owns the bootstrap only (cluster, ArgoCD, bootstrap Secret, root app).
   Everything after that comes from Git through ArgoCD. Ansible never installs the app or monitoring,
   so two tools never manage the same resources.
