@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    # The tag-bump commit changes only this file. Together with GITHUB_TOKEN and [skip ci],
+    # this keeps the bump from triggering another run (D-019).
+    paths-ignore:
+      - charts/skywatch/values.yaml
+
+# Runs on the same branch wait for each other, so two fast pushes can't race on the bump.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/skywatch
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements/constraints.txt
+            apps/*/requirements*.txt
+
+      # The same .venv that make lint and make test use locally.
+      - name: Install test tools
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -c requirements/constraints.txt \
+            -r apps/backend/requirements-test.txt \
+            -r apps/frontend/requirements-test.txt
+
+      - name: Lint (ruff, hadolint)
+        run: make lint
+
+      - name: Test
+        run: make test
+
+      # Needs Docker 27+, so it runs here and not in local make lint.
+      - name: Dockerfile checks
+        run: |
+          docker build --check -f apps/backend/Dockerfile .
+          docker build --check -f apps/frontend/Dockerfile .
+
+  build:
+    needs: lint-and-test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: docker/setup-buildx-action@v4.4.1
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # On a PR: build only. On a push to main: build and push, tagged with the commit SHA.
+      - name: Build and push
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: apps/${{ matrix.service }}/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  bump:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      # The latest main, not this run's commit, so the push still works if main moved on.
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+
+      - name: Set image tags
+        env:
+          TAG: ${{ github.sha }}
+        run: |
+          yq -i '.backend.image.tag = strenv(TAG) | .frontend.image.tag = strenv(TAG)' \
+            charts/skywatch/values.yaml
+
+      # Pushed with GITHUB_TOKEN, which does not trigger workflows.
+      - name: Commit and push
+        run: |
+          if git diff --quiet; then
+            echo "Image tags already set to ${GITHUB_SHA}"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Set image tags to ${GITHUB_SHA::7} [skip ci]"
+          git push

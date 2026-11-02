@@ -76,7 +76,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 
 | ID | Requirement | Where | Proof | Status |
 |----|-------------|-------|-------|--------|
-| S1 | Public GitHub repo with all code, manifests, playbooks, pipelines | GitHub | Repo is public | [ ] |
+| S1 | Public GitHub repo with all code, manifests, playbooks, pipelines | GitHub | Repo is public | [x] |
 | S2 | README: chosen path + step-by-step bring-up from scratch | `README.md` | Stranger test passes | [ ] |
 | S3 | README: architecture overview and key decisions | `README.md`, `docs/architecture.md` | Document | [ ] |
 | S4 | README: problems encountered and solutions | `docs/troubleshooting.md` | Document | [ ] |

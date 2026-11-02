@@ -171,6 +171,10 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   Plus a `concurrency` group so two fast pushes don't race on the bump.
 - **Why:** Defense in depth; any one mechanism can be changed by mistake later.
 - **Note:** Branch protection that requires PRs would block the bot push (see D-029).
+- **Revisit at stage 7:** `paths-ignore` also skips CI when a person changes only `values.yaml`
+  (replicas, resources, config), so that change gets no `helm lint`. Plan: run only `helm lint`
+  for such changes, without building images.
+- **Working on `main`:** the bot adds a commit after every push, so run `git pull` before the next push.
 
 ## D-020 · One Helm chart, no subcharts
 - **Decision:** `charts/skywatch`, one file per resource, shared `_helpers.tpl`, one values block per service.
