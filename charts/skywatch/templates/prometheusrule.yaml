@@ -1,0 +1,72 @@
+{{- $ctx := dict "root" . "component" "monitoring" }}
+{{- $ns := .Release.Namespace }}
+{{- $backendJob := printf "%s-backend" (include "skywatch.fullname" .) }}
+{{- $frontendJob := printf "%s-frontend" (include "skywatch.fullname" .) }}
+# Alerts for the app (B1.3). Prometheus labels each series with job=<Service name>.
+# {{`{{ ... }}`}} below is Prometheus template syntax; the backticks stop Helm from reading it.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "skywatch.fullname" . }}
+  labels:
+    {{- include "skywatch.labels" $ctx | nindent 4 }}
+    # Prometheus reads only rules with this label.
+    release: {{ .Values.monitoring.releaseLabel }}
+  annotations:
+    # The CRD comes from the monitoring app; same reason as the ServiceMonitor.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  groups:
+    - name: skywatch
+      rules:
+        # With no traffic the ratio is 0/0 (no value), so it can't fire by mistake.
+        - alert: SkywatchHighErrorRate
+          expr: |
+            sum by (service) (rate(http_requests_total{namespace="{{ $ns }}", status=~"5.."}[5m]))
+              / sum by (service) (rate(http_requests_total{namespace="{{ $ns }}"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {{`"More than 5% of requests to {{ $labels.service }} return 5xx"`}}
+
+        # 2s is well under the 10s largest histogram bucket and the 5s Open-Meteo timeout.
+        - alert: SkywatchHighLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum by (service, le) (rate(http_request_duration_seconds_bucket{namespace="{{ $ns }}"}[5m]))
+            ) > 2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: {{`"p95 latency of {{ $labels.service }} is above 2s"`}}
+
+        # Overlaps SkywatchHighErrorRate on purpose: it says whether the cause is upstream.
+        - alert: SkywatchUpstreamErrors
+          expr: |
+            sum by (service, api) (rate(upstream_errors_total{namespace="{{ $ns }}"}[5m]))
+              / sum by (service, api) (rate(upstream_request_duration_seconds_count{namespace="{{ $ns }}"}[5m])) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {{`"More than 10% of {{ $labels.service }} calls to {{ $labels.api }} fail"`}}
+
+        # absent(... == 1): fires when no pod of the service is up, including when the
+        # Deployment or its endpoints are gone and there is no "up" series at all.
+        - alert: SkywatchBackendDown
+          expr: absent(up{namespace="{{ $ns }}", job="{{ $backendJob }}"} == 1)
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "No backend pod is up"
+
+        - alert: SkywatchFrontendDown
+          expr: absent(up{namespace="{{ $ns }}", job="{{ $frontendJob }}"} == 1)
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "No frontend pod is up"

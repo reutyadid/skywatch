@@ -1,0 +1,14 @@
+{{- $ctx := dict "root" . "component" "monitoring" }}
+# Dashboard as code (B1.2). The JSON lives in dashboards/skywatch.json, so it can be exported from
+# Grafana and pasted back as is.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "skywatch.fullname" . }}-dashboard
+  labels:
+    {{- include "skywatch.labels" $ctx | nindent 4 }}
+    # Grafana's sidecar loads every ConfigMap with this label, from any namespace.
+    grafana_dashboard: "1"
+data:
+  skywatch.json: |-
+    {{- .Files.Get "dashboards/skywatch.json" | nindent 4 }}

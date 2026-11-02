@@ -39,3 +39,7 @@ frontend:
     limits:
       cpu: 250m
       memory: 192Mi
+monitoring:
+  # Prometheus reads only ServiceMonitors and rules labelled release=<monitoring Helm release>.
+  # Must match spec.source.helm.releaseName in argocd/apps/monitoring.yaml.
+  releaseLabel: monitoring

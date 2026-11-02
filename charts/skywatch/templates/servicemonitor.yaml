@@ -1,0 +1,24 @@
+{{- $ctx := dict "root" . "component" "monitoring" }}
+# Tells Prometheus to scrape /metrics on both app Services (B1.1).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "skywatch.fullname" . }}
+  labels:
+    {{- include "skywatch.labels" $ctx | nindent 4 }}
+    # Filter 1: Prometheus reads only ServiceMonitors with this label.
+    release: {{ .Values.monitoring.releaseLabel }}
+  annotations:
+    # The CRD comes from the monitoring app. Skip the dry run while it's missing, so this
+    # resource doesn't block the rest of the app; the app's sync retry applies it later.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  # Filter 2: only the Services of this release (backend and frontend), in this namespace.
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: skywatch
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

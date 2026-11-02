@@ -1,0 +1,126 @@
+{
+  "title": "SkyWatch",
+  "uid": "skywatch",
+  "description": "RED metrics for the SkyWatch services, plus upstream calls (Open-Meteo, and the backend as seen by the frontend).",
+  "tags": ["skywatch"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "panels": [
+    {
+      "type": "row",
+      "title": "Requests (rate, errors, duration)",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests per second",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 1},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service) (rate(http_requests_total{namespace=\"skywatch\"}[5m]))",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "5xx error ratio",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 1},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0}, "overrides": []},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service) (rate(http_requests_total{namespace=\"skywatch\", status=~\"5..\"}[5m])) / sum by (service) (rate(http_requests_total{namespace=\"skywatch\"}[5m]))",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Request duration p95",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 1},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s", "min": 0}, "overrides": []},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (service, le) (rate(http_request_duration_seconds_bucket{namespace=\"skywatch\"}[5m])))",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests per second by route and status",
+      "gridPos": {"h": 8, "w": 16, "x": 0, "y": 9},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service, handler, status) (rate(http_requests_total{namespace=\"skywatch\"}[5m]))",
+          "legendFormat": "{{service}} {{handler}} {{status}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Pods up",
+      "description": "Targets Prometheus can scrape, per service.",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 9},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "none"}, "overrides": []},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (job) (up{namespace=\"skywatch\"})",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Upstream calls (is it slow here or upstream?)",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 17},
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Upstream duration p95",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s", "min": 0}, "overrides": []},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (service, api, le) (rate(upstream_request_duration_seconds_bucket{namespace=\"skywatch\"}[5m])))",
+          "legendFormat": "{{service}} -> {{api}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Upstream errors per second",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short", "min": 0}, "overrides": []},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service, api) (rate(upstream_errors_total{namespace=\"skywatch\"}[5m]))",
+          "legendFormat": "{{service}} -> {{api}}"
+        }
+      ]
+    }
+  ]
+}
