@@ -24,7 +24,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | R2.4 | K3s version pinned | `inventory/group_vars/all.yml` | `kubectl get nodes` shows the pinned version | [x] |
 | R2.5 | Playbook is idempotent: re-run on a healthy cluster changes nothing | All roles, handlers | Second `make cluster` ends with `changed=0` | [x] |
 | R2.6 | `kubectl` works from the host | `roles/kubeconfig` | `kubectl get nodes` from the WSL shell | [x] |
-| R2.7 | No application workloads on the control plane | `roles/k3s_server` taint | `kubectl get pods -n skywatch -o wide` shows only workers; `verify.yml` | [ ] |
+| R2.7 | No application workloads on the control plane | `roles/k3s_server` taint | `kubectl get pods -n skywatch -o wide` shows only workers; `verify.yml` | [x] |
 
 ## 3. Containerization and CI
 
@@ -42,13 +42,13 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 
 | ID | Requirement | Where | Proof | Status |
 |----|-------------|-------|-------|--------|
-| R4.1 | One chart for the whole app | `charts/skywatch` | Repo layout | [ ] |
-| R4.2 | Frontend Deployment + Service reachable from the host | `frontend-*.yaml`, NodePort | Browser on `<worker>.mshome.net:<nodePort>` | [ ] |
-| R4.3 | Backend Deployment with 2 replicas | `backend-deployment.yaml`, `values.yaml` | `kubectl get deploy` shows 2/2 | [ ] |
-| R4.4 | Backend internal Service | `backend-service.yaml` (ClusterIP) | `kubectl get svc` | [ ] |
+| R4.1 | One chart for the whole app | `charts/skywatch` | Repo layout | [x] |
+| R4.2 | Frontend Deployment + Service reachable from the host | `frontend-*.yaml`, NodePort | Browser on `<worker>.mshome.net:<nodePort>` | [x] |
+| R4.3 | Backend Deployment with 2 replicas | `backend-deployment.yaml`, `values.yaml` | `kubectl get deploy` shows 2/2 | [x] |
+| R4.4 | Backend internal Service | `backend-service.yaml` (ClusterIP) | `kubectl get svc` | [x] |
 | R4.5 | Configuration via values and ConfigMaps, not hardcoded in images | `values.yaml`, `*-configmap.yaml` | Change a value, see it applied without a rebuild | [ ] |
-| R4.6 | Readiness and liveness probes on every container | Deployments | `verify.yml` | [ ] |
-| R4.7 | Resource requests and limits on every container | Deployments | `verify.yml` | [ ] |
+| R4.6 | Readiness and liveness probes on every container | Deployments | `verify.yml` | [x] |
+| R4.7 | Resource requests and limits on every container | Deployments | `verify.yml` | [x] |
 | R4.8 | No plaintext secrets in Git | `roles/bootstrap_secrets`, K3s token read at run time | `git grep` finds no secret values | [ ] |
 | R4.9 | Secret handling approach explained | `docs/decisions.md` D-008, D-023, README | Document | [ ] |
 

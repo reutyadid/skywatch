@@ -1,0 +1,16 @@
+{{- $ctx := dict "root" . "component" "backend" }}
+# Internal only: the frontend reaches the backend by this name (R4.4).
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "skywatch.fullname" . }}-backend
+  labels:
+    {{- include "skywatch.labels" $ctx | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "skywatch.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.backend.port }}
+      targetPort: http

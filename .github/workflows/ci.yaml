@@ -34,16 +34,23 @@ jobs:
           cache-dependency-path: |
             requirements/constraints.txt
             apps/*/requirements*.txt
+            infra/ansible/requirements.txt
 
-      # The same .venv that make lint and make test use locally.
-      - name: Install test tools
+      - uses: azure/setup-helm@v5.0.1
+        with:
+          version: v4.3.1
+
+      # The same venvs that make lint and make test use locally.
+      - name: Install test and lint tools
         run: |
           python -m venv .venv
           .venv/bin/pip install -c requirements/constraints.txt \
             -r apps/backend/requirements-test.txt \
             -r apps/frontend/requirements-test.txt
+          python -m venv .venv-ansible
+          .venv-ansible/bin/pip install -r infra/ansible/requirements.txt
 
-      - name: Lint (ruff, hadolint)
+      - name: Lint (ruff, helm lint, ansible-lint, hadolint)
         run: make lint
 
       - name: Test

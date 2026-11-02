@@ -180,7 +180,8 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   push to GHCR with the commit SHA tag + bump `values.yaml`.
 - **Caching:** buildx `type=gha` layer cache, pip cache.
 - **Lint:** ruff (Python), hadolint (Dockerfiles, run from its pinned image so nothing is installed
-  on the host), `docker build --check` (Docker's own Dockerfile checks), `helm lint`.
+  on the host), `docker build --check` (Docker's own Dockerfile checks), `helm lint --strict`,
+  `ansible-lint`. CI runs the same `make lint` as the laptop, with Helm pinned through `azure/setup-helm`.
   `docker build --check` runs only in CI: it needs Docker 27+, and the local Docker Desktop (24.0.6)
   is kept as is for now.
 
@@ -205,6 +206,10 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 ## D-021 · Configuration through values and ConfigMaps
 - **Decision:** Every runtime setting (backend URL, timeouts, threads, log level) comes from a ConfigMap
   rendered from values. Images contain no environment-specific config.
+- **Backend URL:** built in the chart from the backend Service name, so the two can't drift apart.
+- **Config changes roll the pods:** each Deployment carries a `checksum/config` annotation of its
+  ConfigMap. A value change changes the checksum, so Kubernetes replaces the pods; no rebuild, no
+  manual restart.
 
 ## D-022 · ArgoCD: installed by Ansible with Helm, then app-of-apps
 - **Decision:** The `argocd` role runs on WSL (against the Kubernetes API, not over SSH) and installs
@@ -245,7 +250,8 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **With more time:** Loki + Grafana Alloy (Promtail is end-of-life).
 
 ## D-025 · Frontend exposure
-- **Decision:** NodePort, reached from the host at `<worker>.mshome.net:<nodePort>`.
+- **Decision:** NodePort, fixed at `30080` in values, reached from the host at
+  `http://<worker>.mshome.net:30080`. A fixed port keeps the URL the same across reinstalls.
 - **Why:** Meets "reachable from the host" with the fewest moving parts.
 - **Not ingress-nginx:** the project is retired (no more releases or security fixes since March 2026).
 - **With more time:** Ingress or Gateway API through K3s's built-in Traefik (no extra controller).
@@ -294,6 +300,15 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   `git commit` and `git push`, so every commit is reviewed and made by the author.
 - **Why:** The task allows AI but requires understanding every part. The instruction file explains
   what to do; the permission rule enforces it.
+
+## D-032 · Pod security and resources
+- **Decision:** Every pod runs as UID 10001 (`runAsNonRoot`), with `allowPrivilegeEscalation: false`,
+  all Linux capabilities dropped, the `RuntimeDefault` seccomp profile, a read-only root filesystem,
+  and no service account token. gunicorn gets a small in-memory `/tmp` for its worker heartbeat files.
+- **Why:** The apps need none of these privileges, so taking them away costs nothing and limits
+  what a compromised container could do. This also matches the Kubernetes "restricted" Pod Security level.
+- **Resources:** requests 50m CPU / 96Mi, limits 250m CPU / 192Mi per container. Measured at
+  about 43Mi of memory per pod at rest (`kubectl top`), so the limits leave room for request bursts.
 
 ## D-031 · Deferred (only if time, in this order)
 1. Ingress or Gateway API through the built-in Traefik.

@@ -1,10 +1,41 @@
 # Image tags are set by CI (.github/workflows/ci.yaml). Never edit them by hand.
-# The rest of the chart's values are added in stage 7.
 backend:
   image:
     repository: ghcr.io/reutyadid/skywatch-backend
     tag: "7c45b059e4bceab2262222d45c2fb9716a0c6c1b"
+  replicas: 2
+  port: 8000
+  # Becomes the container's environment through a ConfigMap (D-021). Timeouts: D-014.
+  config:
+    OPEN_METEO_TIMEOUT_SECONDS: "5"
+    GUNICORN_THREADS: "4"
+    GUNICORN_TIMEOUT_SECONDS: "30"
+    LOG_LEVEL: INFO
+  resources:
+    requests:
+      cpu: 50m
+      memory: 96Mi
+    limits:
+      cpu: 250m
+      memory: 192Mi
 frontend:
   image:
     repository: ghcr.io/reutyadid/skywatch-frontend
     tag: "7c45b059e4bceab2262222d45c2fb9716a0c6c1b"
+  replicas: 1
+  port: 8080
+  # Fixed, so the URL never changes: http://<worker>.mshome.net:30080 (D-025).
+  nodePort: 30080
+  # BACKEND_URL is built in the chart from the backend Service name.
+  config:
+    BACKEND_TIMEOUT_SECONDS: "10"
+    GUNICORN_THREADS: "4"
+    GUNICORN_TIMEOUT_SECONDS: "30"
+    LOG_LEVEL: INFO
+  resources:
+    requests:
+      cpu: 50m
+      memory: 96Mi
+    limits:
+      cpu: 250m
+      memory: 192Mi

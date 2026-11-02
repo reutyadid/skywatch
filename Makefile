@@ -8,7 +8,7 @@ help:
 	@echo "make cluster  install K3s with Ansible, save ./kubeconfig"
 	@echo "make down     destroy the 3 VMs"
 	@echo "make test     pytest for both services"
-	@echo "make lint     ruff, hadolint (needs Docker), ansible-lint"
+	@echo "make lint     ruff, helm lint, ansible-lint, hadolint (needs Docker)"
 
 vms:
 	infra/scripts/create-vms.sh
@@ -26,6 +26,7 @@ test:
 lint:
 	cd apps/backend && ../../.venv/bin/ruff check .
 	cd apps/frontend && ../../.venv/bin/ruff check .
+	helm lint --strict charts/skywatch
+	cd infra/ansible && PATH="$(CURDIR)/.venv-ansible/bin:$$PATH" ansible-lint
 	docker run --rm -i $(HADOLINT_IMAGE) < apps/backend/Dockerfile
 	docker run --rm -i $(HADOLINT_IMAGE) < apps/frontend/Dockerfile
-	cd infra/ansible && PATH="$(CURDIR)/.venv-ansible/bin:$$PATH" ansible-lint

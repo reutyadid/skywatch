@@ -63,3 +63,13 @@ Format for each entry:
 - **Symptom:** `git add infra/` staged every role except `roles/kubeconfig/`.
 - **Cause:** the `.gitignore` line `kubeconfig` matches any file or folder with that name, at any depth.
 - **Fix:** `/kubeconfig`, which only matches the file `make cluster` writes in the repo root.
+
+## Real cities show "The weather service is unavailable"
+- **Symptom:** on the cluster (and earlier in Docker and locally), searches often fail with
+  "unavailable", while an unknown city still gets "City not found". The backend logs
+  `Open-Meteo forecast failed` or `timed out`.
+- **Cause:** Open-Meteo itself. Called straight from WSL, outside Docker and Kubernetes, the forecast
+  API answered `503 {"reason":"The service is overloaded"}` or did not answer within 8s, and
+  geocoding hung on about every second call.
+- **Fix:** none in our code: the app turns upstream errors into a clear 502 page and stays healthy,
+  which is the intended behaviour (D-014, D-017). For a demo or screenshot, retry when Open-Meteo recovers.

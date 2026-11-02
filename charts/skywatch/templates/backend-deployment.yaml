@@ -1,0 +1,71 @@
+{{- $ctx := dict "root" . "component" "backend" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "skywatch.fullname" . }}-backend
+  labels:
+    {{- include "skywatch.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "skywatch.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "skywatch.labels" $ctx | nindent 8 }}
+      annotations:
+        # A ConfigMap change changes this checksum, so the pods restart with the new config.
+        checksum/config: {{ include (print $.Template.BasePath "/backend-configmap.yaml") . | sha256sum }}
+    spec:
+      # The app never calls the Kubernetes API, so it gets no token.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "skywatch.fullname" . }}-backend
+          # Same /healthz, different parameters (D-017). Neither probe calls Open-Meteo.
+          # Readiness is quick to take a pod out of traffic.
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          # Liveness is slow to restart: only a pod that stays stuck.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            # gunicorn writes its worker heartbeat files here; the rest of the filesystem is read-only.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Mi

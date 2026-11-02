@@ -1,0 +1,14 @@
+{{- $ctx := dict "root" . "component" "frontend" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "skywatch.fullname" . }}-frontend
+  labels:
+    {{- include "skywatch.labels" $ctx | nindent 4 }}
+data:
+  PORT: {{ .Values.frontend.port | quote }}
+  # Built from the backend Service, so the two can't drift apart.
+  BACKEND_URL: "http://{{ include "skywatch.fullname" . }}-backend:{{ .Values.backend.port }}"
+  {{- range $key, $value := .Values.frontend.config }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
