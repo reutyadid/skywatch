@@ -18,7 +18,7 @@
     - kubeconfig
 
 # Runs in WSL against the Kubernetes API, not over SSH.
-- name: Bootstrap ArgoCD
+- name: Bootstrap the Grafana Secret and ArgoCD
   hosts: localhost
   connection: local
   gather_facts: false
@@ -26,4 +26,6 @@
     # The kubernetes library lives in .venv-ansible, not in the system Python.
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
   roles:
+    # Secret first, so Grafana finds it when ArgoCD installs monitoring.
+    - bootstrap_secrets
     - argocd

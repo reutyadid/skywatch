@@ -13,3 +13,6 @@ kubeconfig_path: "{{ repo_root }}/kubeconfig"
 
 # Official ArgoCD chart (D-022). Chart 10.11.6 = ArgoCD v3.5.6.
 argocd_chart_version: 10.11.6
+
+# Grafana admin Secret (D-023). Must match grafana.admin.existingSecret in argocd/apps/monitoring.yaml.
+grafana_admin_secret: grafana-admin
