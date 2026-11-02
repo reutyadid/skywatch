@@ -8,7 +8,8 @@ __pycache__/
 
 # Secrets and local access
 *.kubeconfig
-kubeconfig
+# Only the file in the repo root (written by make cluster), not roles/kubeconfig/.
+/kubeconfig
 .env
 *.pem
 id_*

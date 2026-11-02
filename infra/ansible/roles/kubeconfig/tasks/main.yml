@@ -1,0 +1,16 @@
+# The admin kubeconfig holds cluster credentials, so no_log keeps it out of the output.
+- name: Read the admin kubeconfig from the server
+  ansible.builtin.slurp:
+    src: /etc/rancher/k3s/k3s.yaml
+  register: kubeconfig_admin
+  no_log: true
+
+# K3s writes 127.0.0.1, which only works on the server itself (D-009).
+- name: Save it in WSL, pointing at the server's name
+  ansible.builtin.copy:
+    content: "{{ kubeconfig_admin.content | b64decode | replace('https://127.0.0.1:6443', 'https://' ~ k3s_server_name ~ ':6443') }}"
+    dest: "{{ kubeconfig_path }}"
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+  no_log: true

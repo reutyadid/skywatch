@@ -1,0 +1,18 @@
+# Full cluster bring-up. Safe to run again: a second run on a healthy cluster changes nothing.
+- name: Install the K3s server
+  hosts: server
+  become: true
+  roles:
+    - k3s_server
+
+- name: Join the workers to the server
+  hosts: workers
+  become: true
+  roles:
+    - k3s_agent
+
+- name: Save the kubeconfig in WSL
+  hosts: server
+  become: true
+  roles:
+    - kubeconfig

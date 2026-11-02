@@ -1,6 +1,8 @@
 # Ansible's Python packages, in their own venv: .venv-ansible (D-015).
 # Install: python3 -m venv .venv-ansible && .venv-ansible/bin/pip install -r infra/ansible/requirements.txt
 ansible-core==2.21.5
+ansible-lint==26.10.1
+
 # Pulled in by ansible-core
 cffi==2.1.1
 cryptography==50.0.2
@@ -10,3 +12,25 @@ packaging==26.3
 pycparser==3.12
 PyYAML==6.0.3
 resolvelib==1.2.1
+
+# Pulled in by ansible-lint
+ansible-compat==26.10.0
+attrs==26.1.0
+black==26.10.1
+bracex==3.2
+click==8.5.0
+distro==1.9.0
+filelock==4.2.6
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+mypy_extensions==1.1.0
+pathspec==1.1.1
+platformdirs==4.14.3
+pytokens==0.4.1
+referencing==0.37.0
+rpds-py==2026.9.1
+ruamel.yaml==0.19.1
+subprocess-tee==0.4.2
+typing_extensions==4.16.0
+wcmatch==11.2
+yamllint==1.38.0

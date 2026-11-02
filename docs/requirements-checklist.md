@@ -19,11 +19,11 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | ID | Requirement | Where | Proof | Status |
 |----|-------------|-------|-------|--------|
 | R2.1 | 3 Ubuntu VMs (Multipass) | `infra/scripts/create-vms.sh`, `infra/cloud-init/base.yaml` | `multipass.exe list` shows 3 running VMs | [x] |
-| R2.2 | Ansible roles install K3s on the control plane | `roles/k3s_server` | Role code, server node Ready | [ ] |
-| R2.3 | Ansible roles join the workers | `roles/k3s_agent` | `kubectl get nodes` shows 3 nodes Ready | [ ] |
-| R2.4 | K3s version pinned | `inventory/group_vars/all.yml` | `kubectl get nodes` shows the pinned version | [ ] |
-| R2.5 | Playbook is idempotent: re-run on a healthy cluster changes nothing | All roles, handlers | Second `make cluster` ends with `changed=0` | [ ] |
-| R2.6 | `kubectl` works from the host | `roles/kubeconfig` | `kubectl get nodes` from the WSL shell | [ ] |
+| R2.2 | Ansible roles install K3s on the control plane | `roles/k3s_server` | Role code, server node Ready | [x] |
+| R2.3 | Ansible roles join the workers | `roles/k3s_agent` | `kubectl get nodes` shows 3 nodes Ready | [x] |
+| R2.4 | K3s version pinned | `inventory/group_vars/all.yml` | `kubectl get nodes` shows the pinned version | [x] |
+| R2.5 | Playbook is idempotent: re-run on a healthy cluster changes nothing | All roles, handlers | Second `make cluster` ends with `changed=0` | [x] |
+| R2.6 | `kubectl` works from the host | `roles/kubeconfig` | `kubectl get nodes` from the WSL shell | [x] |
 | R2.7 | No application workloads on the control plane | `roles/k3s_server` taint | `kubectl get pods -n skywatch -o wide` shows only workers; `verify.yml` | [ ] |
 
 ## 3. Containerization and CI

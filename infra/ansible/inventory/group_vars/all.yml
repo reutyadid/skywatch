@@ -1,0 +1,7 @@
+# Pinned versions and shared names (D-007). One place to change them.
+k3s_version: v1.36.5+k3s1
+# The "+" in the version must be written as %2B in the download URL.
+k3s_download_url: "https://github.com/k3s-io/k3s/releases/download/{{ k3s_version | urlencode }}"
+
+# Workers and kubectl reach the server by name: its IP changes on every host reboot (D-004).
+k3s_server_name: sw-server.mshome.net

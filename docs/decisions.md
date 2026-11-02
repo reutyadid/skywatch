@@ -56,17 +56,22 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   names had to change.
 
 ## D-005 · Own Ansible roles
-- **Decision:** Roles written from scratch: `common`, `k3s_server`, `k3s_agent`, `kubeconfig`,
+- **Decision:** Roles written from scratch: `k3s_server`, `k3s_agent`, `kubeconfig`,
   `bootstrap_secrets`, `argocd`. The official `k3s-io/k3s-ansible` collection is used only to compare.
+- **K3s install:** the pinned binary is downloaded with `get_url` and checked against the release's
+  `sha256sum-amd64.txt`; config and systemd unit come from our templates. Not the `get.k3s.io`
+  script: the script itself is not pinned, and every step here stays visible and idempotent.
 - **Why:** The task asks to *write* roles, and every line must be explainable. The official
   collection covers HA, external databases, airgap and upgrades, which are out of scope.
 - **Idempotency:** declarative modules, config files from templates, and handlers that restart
   K3s only when its config changed. Proof: a second run reports `changed=0`.
 
-## D-006 · Minimal `common` role
-- **Decision:** Only tasks proven necessary on the Multipass Ubuntu image (checked at the start of stage 6).
-- **Why:** If the image has no swap, a "disable swap" task is noise. K3s loads the kernel modules it
-  needs. `--node-ip` / `--flannel-iface` are added only if the VMs have more than one NIC.
+## D-006 · No `common` role
+- **Decision:** A `common` role would hold only tasks proven necessary on the Multipass Ubuntu image.
+  The checks at the start of stage 6 found none, so there is no `common` role.
+- **Why:** The image has no swap, so a "disable swap" task would be noise. Each VM has one NIC, so
+  no `--node-ip` / `--flannel-iface`. K3s loads the kernel modules it needs.
+- **Revisit when:** a check shows something the image lacks; then add the role with only that task.
 
 ## D-007 · K3s configuration
 - **Decision:** Pinned K3s version in `group_vars/all.yml`. Config through `/etc/rancher/k3s/config.yaml`

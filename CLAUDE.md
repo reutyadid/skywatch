@@ -45,7 +45,7 @@ Bonus focus: observability (Prometheus + Grafana).
 - Test/lint dependencies live in `requirements-test.txt` and never enter an image.
 - Ansible: declarative modules over `command`/`shell`; when `command` is unavoidable, set
   `creates`/`changed_when`. Config files from templates; restarts only through handlers.
-  Every task in `common` must be justified by the checks at the start of stage 6.
+  No `common` role: the stage 6 checks found nothing to prepare (D-006).
 - The project lives inside the WSL filesystem, never under `/mnt/c`.
 
 ## Commands

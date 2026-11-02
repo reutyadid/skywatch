@@ -52,3 +52,14 @@ Format for each entry:
   port hangs instead of being refused, so `requests` reports a timeout. `[::1]` refuses immediately.
 - **Fix:** none needed; the frontend handles both cases. To test the 502 locally, run it with
   `BACKEND_URL=http://[::1]:8000` while the backend is stopped.
+
+## ansible-lint fails on registered variable names
+- **Symptom:** `var-naming[no-role-prefix]` for `register: k3s_node_token` and `register: k3s_kubeconfig`.
+- **Cause:** variables registered inside a role must start with the role's name, so roles can't
+  overwrite each other's variables.
+- **Fix:** renamed them `k3s_agent_node_token` and `kubeconfig_admin`.
+
+## The kubeconfig role was left out of Git
+- **Symptom:** `git add infra/` staged every role except `roles/kubeconfig/`.
+- **Cause:** the `.gitignore` line `kubeconfig` matches any file or folder with that name, at any depth.
+- **Fix:** `/kubeconfig`, which only matches the file `make cluster` writes in the repo root.

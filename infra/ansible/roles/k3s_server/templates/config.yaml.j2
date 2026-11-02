@@ -1,0 +1,9 @@
+# Managed by Ansible (roles/k3s_server). Manual changes are overwritten.
+
+# Put the server's name in the API certificate, so kubectl and the workers can use the name.
+tls-san:
+  - {{ k3s_server_name }}
+
+# K3s does not taint the server by default; without this, app pods could run on it (D-007).
+node-taint:
+  - node-role.kubernetes.io/control-plane:NoSchedule

@@ -1,0 +1,5 @@
+# Managed by Ansible (roles/k3s_agent). Manual changes are overwritten.
+
+# Join the server by name: its IP changes on every host reboot (D-004).
+server: https://{{ k3s_server_name }}:6443
+token: {{ k3s_agent_node_token.content | b64decode | trim }}

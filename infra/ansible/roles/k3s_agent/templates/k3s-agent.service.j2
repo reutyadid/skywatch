@@ -1,0 +1,20 @@
+# Managed by Ansible (roles/k3s_agent). Settings follow the unit from the K3s docs.
+[Unit]
+Description=K3s agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+# K3s tells systemd when it is ready.
+Type=notify
+ExecStart=/usr/local/bin/k3s agent
+# Restarting K3s must not kill the containers it started.
+KillMode=process
+# Let K3s manage the cgroups of its containers.
+Delegate=yes
+LimitNOFILE=1048576
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
