@@ -109,7 +109,7 @@ gets a reply.
 make up
 ```
 
-It takes about 17 minutes and ends with `failed=0`. Along the way, lines saying
+It takes several minutes (mostly downloads, so it depends on your internet speed) and ends with `failed=0`. Along the way, lines saying
 `FAILED - RETRYING` are **normal**: that is the check waiting for ArgoCD to finish deploying.
 
 <details>
@@ -117,11 +117,11 @@ It takes about 17 minutes and ends with `failed=0`. Along the way, lines saying
 
 `make up` runs three steps in order and stops at the first failure. Each can be run on its own.
 
-| Step | What it does | Time |
-|---|---|---|
-| `make vms` | `infra/scripts/create-vms.sh`: launches the 3 Ubuntu 24.04 VMs and puts your SSH key in through cloud-init. Existing VMs are skipped. | ~5-8 min (the first run downloads the Ubuntu image) |
-| `make cluster` | `infra/ansible/playbooks/site.yml`: waits for SSH, installs the pinned K3s, joins the workers, saves `./kubeconfig`, creates the Grafana admin Secret, installs ArgoCD and applies the root app. ArgoCD then deploys the app and monitoring from Git. | ~4-6 min |
-| `make verify` | `infra/ansible/playbooks/verify.yml`: waits for ArgoCD, then checks the requirements against the cluster. Read-only. | ~3-5 min on a new cluster, seconds on a running one |
+| Step | What it does |
+|---|---|
+| `make vms` | `infra/scripts/create-vms.sh`: launches the 3 Ubuntu 24.04 VMs and puts your SSH key in through cloud-init. Existing VMs are skipped. The first run also downloads the Ubuntu image. |
+| `make cluster` | `infra/ansible/playbooks/site.yml`: waits for SSH, installs the pinned K3s, joins the workers, saves `./kubeconfig`, creates the Grafana admin Secret, installs ArgoCD and applies the root app. ArgoCD then deploys the app and monitoring from Git. |
+| `make verify` | `infra/ansible/playbooks/verify.yml`: waits for ArgoCD, then checks the requirements against the cluster. Read-only. On a running cluster it takes seconds. |
 
 **`make vms`** ends with 3 running VMs. The IPs change on every boot; nothing depends on them,
 because everything uses the `<vm>.mshome.net` names:
@@ -143,7 +143,7 @@ sw-worker1.mshome.net      : ok=9    changed=6    unreachable=0    failed=0  ...
 sw-worker2.mshome.net      : ok=8    changed=6    unreachable=0    failed=0  ...
 ```
 
-**`make verify`** prints lines like the one below for up to ~5 minutes while ArgoCD syncs
+**`make verify`** prints lines like the one below for a few minutes while ArgoCD syncs
 (monitoring takes longest). It only fails after 10 minutes:
 
 ```
