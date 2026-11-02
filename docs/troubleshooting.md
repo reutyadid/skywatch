@@ -82,3 +82,11 @@ Format for each entry:
   to `exported_endpoint`.
 - **Fix:** renamed the app label to `handler`, the name the official Prometheus client libraries use.
   The ServiceMonitor keeps the default `honorLabels: false`.
+
+## K3s API times out after installing monitoring
+- **Symptom:** after ArgoCD installed kube-prometheus-stack, `kubectl` on the server timed out and
+  ArgoCD stopped syncing. On `sw-server`, `free -m` showed 56 MB free and the load average was 11.
+- **Cause:** the 2 GB control plane was too small. The K3s server process grew to ~1.5 GB holding the
+  new CRDs, objects and watches and answering Prometheus scrapes. The VM has no swap, so it thrashed.
+- **Fix:** raised `sw-server` to 3 GB (`multipass stop`, `multipass set local.sw-server.memory=3G`,
+  `multipass start`) and matched `create-vms.sh`. About 1.4 GB is now available. See D-010.

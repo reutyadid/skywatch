@@ -15,7 +15,7 @@ PLACEHOLDER="__SSH_PUBLIC_KEY__"
 
 # name, vCPUs, memory, disk (D-010)
 VMS=(
-  "sw-server 2 2G 10G"
+  "sw-server 2 3G 10G"
   "sw-worker1 2 3584M 20G"
   "sw-worker2 2 3584M 20G"
 )

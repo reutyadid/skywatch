@@ -97,12 +97,18 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   ```
   Usable:              21.9 GB
   Windows + browser:   ~5-6 GB
-  VM control plane:     2 GB, 2 vCPU
+  VM control plane:     3 GB, 2 vCPU
   VM workers:           2 x 3.5 GB, 2 vCPU each   (ArgoCD + monitoring run here)
   WSL:                  4 GB, 4 processors
   ---------------------------------------------
-  Total:               ~18-19 GB  ->  ~3 GB headroom
+  Total:               ~19-20 GB  ->  ~2-3 GB headroom
   ```
+- **Control plane raised from 2 GB to 3 GB in stage 9:** installing kube-prometheus-stack pushed the
+  K3s server process to ~1.5 GB, leaving 56 MB free; with no swap the VM thrashed (load 11) and the
+  API timed out. App and monitoring pods never run there (taint), but the API server holds every
+  object, CRD and watch in memory, and Prometheus scrapes it. Measured after the change: ~1.4 GB
+  available. Resized with `multipass stop` / `set local.sw-server.memory=3G` / `start`
+  (memory can only change while the VM is stopped); `create-vms.sh` matches.
 - **WSL:** 4 GB during stages 1–3 (Flask and pytest only), 6 GB during stages 4–5 (Docker builds,
   no VMs running), back to 4 GB from stage 6. It then only runs Ansible, kubectl and helm. WSL tends to hold memory as page cache, so a lower cap
   protects the VMs. Docker Desktop runs inside WSL, so it is turned off while the cluster runs.
