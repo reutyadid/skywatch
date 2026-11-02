@@ -4,6 +4,9 @@ kind: Application
 metadata:
   name: skywatch
   namespace: argocd
+  # Deleting this Application also deletes what it installed.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
@@ -20,3 +23,12 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+    # The ServiceMonitor and PrometheusRule need CRDs from the monitoring app, which may sync later.
+    # They skip the dry run (see their annotations), so the app itself still deploys; these retries
+    # apply them once the CRDs exist. A failed automated sync is not retried otherwise.
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

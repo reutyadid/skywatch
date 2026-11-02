@@ -1,0 +1,111 @@
+# Prometheus, Alertmanager and Grafana through the Prometheus Operator (B1, D-026).
+# The chart comes from the prometheus-community repo; only these values live here.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  # Deleting this Application also deletes what it installed.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 92.17.0
+    helm:
+      # Must match monitoring.releaseLabel in charts/skywatch/values.yaml: Prometheus only reads
+      # ServiceMonitors and rules labelled release=<this name>.
+      releaseName: monitoring
+      valuesObject:
+        # K3s runs these inside the k3s process (metrics on 127.0.0.1 only), and its datastore is
+        # SQLite, not etcd. Scraping them would only show false "down" targets and alerts.
+        kubeControllerManager:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+        kubeProxy:
+          enabled: false
+        kubeEtcd:
+          enabled: false
+
+        prometheusOperator:
+          # The webhooks run as Helm hook Jobs on every ArgoCD sync. Off to stay minimal; a bad rule
+          # then shows in the operator logs instead of being rejected.
+          admissionWebhooks:
+            enabled: false
+          # Must go with the line above: the operator mounts the webhooks' certificate Secret.
+          tls:
+            enabled: false
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {memory: 128Mi}
+          prometheusConfigReloader:
+            resources:
+              requests: {cpu: 10m, memory: 25Mi}
+              limits: {memory: 50Mi}
+
+        # Monitoring components get memory limits but no CPU limits: CPU limits throttle them
+        # and fire the chart's own CPUThrottlingHigh alert.
+        prometheus:
+          prometheusSpec:
+            # No persistent volume (emptyDir): metrics are lost when the pod restarts.
+            retention: 2d
+            retentionSize: 1GB
+            resources:
+              requests: {cpu: 100m, memory: 256Mi}
+              limits: {memory: 768Mi}
+
+        # Minimal: one replica, no receiver. The chart's default config routes every alert to a
+        # "null" receiver, so alerts are visible in the Alertmanager UI but sent nowhere.
+        alertmanager:
+          alertmanagerSpec:
+            replicas: 1
+            resources:
+              requests: {cpu: 10m, memory: 32Mi}
+              limits: {memory: 64Mi}
+
+        grafana:
+          admin:
+            # Created by Ansible (roles/bootstrap_secrets), never in Git (D-023).
+            existingSecret: grafana-admin
+          # The chart's dashboards for nodes, pods and Kubernetes.
+          defaultDashboardsEnabled: true
+          # A test pod for "helm test"; ArgoCD doesn't need it.
+          testFramework:
+            enabled: false
+          resources:
+            requests: {cpu: 50m, memory: 160Mi}
+            limits: {memory: 384Mi}
+          sidecar:
+            resources:
+              requests: {cpu: 10m, memory: 64Mi}
+              limits: {memory: 128Mi}
+
+        kube-state-metrics:
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 128Mi}
+
+        prometheus-node-exporter:
+          resources:
+            requests: {cpu: 10m, memory: 24Mi}
+            limits: {memory: 64Mi}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The Prometheus CRDs are too big for client-side apply's last-applied annotation.
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
