@@ -73,3 +73,12 @@ Format for each entry:
   geocoding hung on about every second call.
 - **Fix:** none in our code: the app turns upstream errors into a clear 502 page and stays healthy,
   which is the intended behaviour (D-014, D-017). For a demo or screenshot, retry when Open-Meteo recovers.
+
+## Metric label `endpoint` would clash with Prometheus Operator
+- **Symptom:** found in the stage 9 plan review, before any dashboard was built. Queries grouped
+  `by (endpoint)` would show a single value, `http`, for every route.
+- **Cause:** Prometheus Operator adds an `endpoint` target label (the Service port name) to every
+  series it scrapes. With the default `honorLabels: false`, the app's own `endpoint` label is renamed
+  to `exported_endpoint`.
+- **Fix:** renamed the app label to `handler`, the name the official Prometheus client libraries use.
+  The ServiceMonitor keeps the default `honorLabels: false`.

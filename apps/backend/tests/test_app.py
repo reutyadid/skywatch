@@ -139,8 +139,8 @@ def test_metrics_show_requests_and_upstream_errors(client, mock_get):
 
     body = client.get("/metrics").get_data(as_text=True)
 
-    assert 'http_requests_total{endpoint="weather",method="GET",status="504"}' in body
-    assert 'http_request_duration_seconds_count{endpoint="weather"}' in body
+    assert 'http_requests_total{handler="weather",method="GET",status="504"}' in body
+    assert 'http_request_duration_seconds_count{handler="weather"}' in body
     assert 'upstream_request_duration_seconds_count{api="geocoding"}' in body
     assert 'upstream_errors_total{api="geocoding"}' in body
 
@@ -150,5 +150,5 @@ def test_probes_and_scrapes_are_not_counted(client):
 
     body = client.get("/metrics").get_data(as_text=True)
 
-    assert 'endpoint="healthz"' not in body
-    assert 'endpoint="metrics"' not in body
+    assert 'handler="healthz"' not in body
+    assert 'handler="metrics"' not in body

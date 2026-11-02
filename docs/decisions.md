@@ -268,6 +268,9 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   upstream (Open-Meteo) latency and errors. RED dashboard as code. A few PrometheusRule alerts.
   Alertmanager off or minimal, short retention, explicit resources.
 - **Why:** The task prefers depth in one bonus. Upstream metrics answer "is it slow here or at Open-Meteo?".
+- **Label name `handler`:** the route label on `http_requests_total` and `http_request_duration_seconds`
+  is `handler` (the name the official Prometheus client libraries use), not `endpoint`, because
+  Prometheus Operator adds its own `endpoint` label to every scraped series.
 - **Note:** node-exporter is a DaemonSet and also runs on the control plane. That is infrastructure,
   not an application workload, so the "no apps on the control plane" check looks at the `skywatch` namespace.
 

@@ -80,9 +80,10 @@ logging.basicConfig(level=LOG_LEVEL, handlers=[log_handler])
 
 # --- Metrics ---
 
-REQUESTS = Counter("http_requests_total", "HTTP requests", ["method", "endpoint", "status"])
+# "handler", not "endpoint": Prometheus Operator adds its own "endpoint" label to every series.
+REQUESTS = Counter("http_requests_total", "HTTP requests", ["method", "handler", "status"])
 REQUEST_DURATION = Histogram(
-    "http_request_duration_seconds", "HTTP request duration", ["endpoint"]
+    "http_request_duration_seconds", "HTTP request duration", ["handler"]
 )
 UPSTREAM_DURATION = Histogram(
     "upstream_request_duration_seconds", "Open-Meteo request duration", ["api"]
@@ -104,9 +105,9 @@ def record_request(response):
 
     duration = time.perf_counter() - g.start_time
     # Unknown URLs share one label, so random paths can't create endless metric series.
-    endpoint = request.endpoint or "unmatched"
-    REQUESTS.labels(request.method, endpoint, response.status_code).inc()
-    REQUEST_DURATION.labels(endpoint).observe(duration)
+    handler = request.endpoint or "unmatched"
+    REQUESTS.labels(request.method, handler, response.status_code).inc()
+    REQUEST_DURATION.labels(handler).observe(duration)
     app.logger.info(
         "request",
         extra={
