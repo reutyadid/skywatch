@@ -1,4 +1,4 @@
-.PHONY: help vms cluster down test lint
+.PHONY: help vms cluster verify up down test lint
 
 HADOLINT_IMAGE := hadolint/hadolint:v2.15.1
 
@@ -6,6 +6,8 @@ help:
 	@echo "make help   list targets"
 	@echo "make vms      create the 3 VMs"
 	@echo "make cluster  install K3s with Ansible, save ./kubeconfig"
+	@echo "make verify   check the requirements against the running cluster"
+	@echo "make up       vms + cluster + verify"
 	@echo "make down     destroy the 3 VMs"
 	@echo "make test     pytest for both services"
 	@echo "make lint     ruff, helm lint, ansible-lint, hadolint (needs Docker)"
@@ -15,6 +17,12 @@ vms:
 
 cluster:
 	cd infra/ansible && ../../.venv-ansible/bin/ansible-playbook playbooks/site.yml
+
+verify:
+	cd infra/ansible && ../../.venv-ansible/bin/ansible-playbook playbooks/verify.yml
+
+# Make runs the prerequisites in order and stops at the first failure.
+up: vms cluster verify
 
 down:
 	infra/scripts/destroy-vms.sh

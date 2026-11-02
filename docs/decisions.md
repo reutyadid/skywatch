@@ -359,6 +359,22 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **Resources:** requests 50m CPU / 96Mi, limits 250m CPU / 192Mi per container. Measured at
   about 43Mi of memory per pod at rest (`kubectl top`), so the limits leave room for request bursts.
 
+## D-033 · Verification playbook and bring-up waits
+- **Decision:** `playbooks/verify.yml` checks the running cluster against the requirements checklist:
+  nodes, K3s version, taint, ArgoCD apps, replicas, probes, resources, NodePort and the Grafana Secret.
+  It only reads state (`k8s_info`, `assert`, `uri`). `make up` = `vms` + `cluster` + `verify`.
+- **Waiting for ArgoCD inside verify:** `site.yml` ends once the root app exists; ArgoCD needs minutes
+  more to sync. The slow checks retry with `until`/`retries` (up to 10 minutes for the apps). On a
+  healthy cluster they pass on the first try, so `make verify` alone stays fast. A separate wait step
+  would add a target and a playbook for the same result.
+- **Why `k8s_info` and not `argocd app wait`:** it reads the same `sync.status` and `health.status`
+  fields without adding the ArgoCD CLI, and it is a module, not a `command`.
+- **`wait_for_connection` at the start of `site.yml`:** the VMs are created outside Ansible, so the
+  playbook first waits until every VM answers over SSH. This is the pattern in the module's own docs
+  for freshly created machines. It changes nothing, so `changed=0` still holds.
+- **Not checked:** Prometheus targets and the dashboard. Prometheus is ClusterIP, so reaching it
+  from the host needs a port-forward; B1 is proven by the stage 9 checks and the screenshot.
+
 ## D-031 · Deferred (only if time, in this order)
 1. Ingress or Gateway API through the built-in Traefik.
 2. External Secrets Operator + Vault.

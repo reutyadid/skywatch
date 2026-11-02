@@ -1,0 +1,134 @@
+# Checks the running cluster against docs/requirements-checklist.md (D-033).
+# Read-only: every task only reads state, so it is safe to run at any time.
+# The slow checks retry, so it also works right after `make cluster`, while ArgoCD is still syncing.
+- name: Verify the cluster
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # The kubernetes library lives in .venv-ansible, not in the system Python.
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    # K3s names a node after the VM's hostname, without the domain.
+    verify_server_node: "{{ groups['server'][0].split('.')[0] }}"
+    verify_argocd_apps: [root, skywatch, monitoring]
+    # Must match the replicas in charts/skywatch/values.yaml.
+    verify_replicas:
+      skywatch-backend: 2
+      skywatch-frontend: 1
+
+  tasks:
+    - name: Wait until all 3 nodes are Ready (R2.3)
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Node
+      register: verify_nodes
+      # Collect every node's conditions, keep the "Ready=True" ones, and count them.
+      until: >-
+        verify_nodes.resources
+        | map(attribute='status.conditions') | flatten
+        | selectattr('type', 'equalto', 'Ready') | selectattr('status', 'equalto', 'True')
+        | list | length == 3
+      retries: 30
+      delay: 10
+
+    - name: Every node runs the pinned K3s version (R2.4)
+      ansible.builtin.assert:
+        that:
+          - verify_nodes.resources | map(attribute='status.nodeInfo.kubeletVersion') | unique == [k3s_version]
+        fail_msg: "Expected {{ k3s_version }} on every node"
+
+    # Synced = the cluster matches Git. Healthy = everything in the app is running.
+    - name: Wait until the ArgoCD apps are Synced and Healthy (R5.1-R5.3, B2)
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        api_version: argoproj.io/v1alpha1
+        kind: Application
+        namespace: argocd
+        name: "{{ item }}"
+      loop: "{{ verify_argocd_apps }}"
+      register: verify_app
+      # A new app has no status yet, hence the defaults.
+      until: >-
+        verify_app.resources | length == 1 and
+        verify_app.resources[0].status.sync.status | default('') == 'Synced' and
+        verify_app.resources[0].status.health.status | default('') == 'Healthy'
+      retries: 60
+      delay: 10
+
+    - name: Read the server node
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Node
+        name: "{{ verify_server_node }}"
+      register: verify_server
+
+    - name: Read the app pods
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Pod
+        namespace: skywatch
+      register: verify_pods
+
+    - name: The server is tainted and runs no app pods (R2.7)
+      ansible.builtin.assert:
+        that:
+          - >-
+            verify_server.resources[0].spec.taints | default([])
+            | selectattr('key', 'equalto', 'node-role.kubernetes.io/control-plane')
+            | selectattr('effect', 'equalto', 'NoSchedule') | list | length == 1
+          - verify_pods.resources | map(attribute='spec.nodeName') | select('equalto', verify_server_node) | list == []
+        fail_msg: "{{ verify_server_node }} must carry the control-plane taint and run no skywatch pods"
+
+    - name: Read the app Deployments
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Deployment
+        namespace: skywatch
+      register: verify_deployments
+
+    - name: Replicas, probes and resources are set and running (R4.3, R4.6, R4.7)
+      ansible.builtin.assert:
+        that:
+          - item.spec.replicas == verify_replicas[item.metadata.name]
+          - item.status.availableReplicas | default(0) == item.spec.replicas
+          # Each line keeps the containers that miss something; the list must be empty.
+          - item.spec.template.spec.containers | rejectattr('readinessProbe', 'defined') | list == []
+          - item.spec.template.spec.containers | rejectattr('livenessProbe', 'defined') | list == []
+          - item.spec.template.spec.containers | rejectattr('resources.requests', 'defined') | list == []
+          - item.spec.template.spec.containers | rejectattr('resources.limits', 'defined') | list == []
+        fail_msg: "{{ item.metadata.name }}: wrong replicas, or a container without probes or resources"
+        # Without this, a passing assert prints the whole Deployment of each loop item.
+        quiet: true
+      loop: "{{ verify_deployments.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
+
+    # The port is read from the Service, so it can't drift from the chart.
+    - name: Read the frontend Service
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Service
+        namespace: skywatch
+        name: skywatch-frontend
+      register: verify_frontend
+
+    - name: The frontend answers from the host on its NodePort (R4.2)
+      ansible.builtin.uri:
+        url: "http://{{ groups['workers'][0] }}:{{ verify_frontend.resources[0].spec.ports[0].nodePort }}/healthz"
+        status_code: 200
+
+    - name: Read the Grafana admin Secret
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Secret
+        namespace: monitoring
+        name: "{{ grafana_admin_secret }}"
+      register: verify_grafana_secret
+      # The result holds the password; keep it out of the output.
+      no_log: true
+
+    - name: The Grafana admin Secret exists (B1, D-023)
+      ansible.builtin.assert:
+        that:
+          - verify_grafana_secret.resources | length == 1
+        fail_msg: "Secret {{ grafana_admin_secret }} is missing in monitoring"
