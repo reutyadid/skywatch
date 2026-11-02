@@ -123,9 +123,10 @@ make test      pytest for both services
 
 ## Stage 6: checks before writing any role
 Done right after `create-vms.sh` and `cloud-init/base.yaml` work.
-- [ ] `.wslconfig` lowered to `memory=4GB`; Docker Desktop off
-- [ ] SSH from WSL to each VM **by name** (`<vm>.mshome.net`)
-- [ ] `ansible all -m ping` from WSL succeeds by name
+- [x] `.wslconfig` lowered to `memory=4GB`; Docker Desktop off
+- [x] SSH from WSL to each VM **by name** (`<vm>.mshome.net`)
+- [x] `ansible all -m ping` from WSL succeeds by name
+- [x] Each VM resolves and pings the others by name (agents will reach the server by name)
 - [ ] Reboot the host → names still resolve, SSH and Ansible ping still work
       (decides static vs generated inventory, D-004)
 - [x] `ip -br addr` and `swapon --show` on one VM → decide what goes into the `common` role (D-006).

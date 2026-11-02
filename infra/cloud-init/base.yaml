@@ -1,0 +1,5 @@
+#cloud-config
+# Rendered by infra/scripts/create-vms.sh, which fills in your SSH public key below.
+# Adds the key to the default "ubuntu" user, so Ansible can connect over SSH.
+ssh_authorized_keys:
+  - __SSH_PUBLIC_KEY__

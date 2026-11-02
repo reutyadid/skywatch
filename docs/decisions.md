@@ -145,6 +145,8 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   standard in a monorepo, and `.dockerignore` keeps it small.
 - **Alternatives:** per-service pins + a CI script that checks they match (duplication + extra code).
 - **Revisit when:** services are owned or released independently.
+- **Ansible is separate:** its own venv (`.venv-ansible`) with pins in `infra/ansible/requirements.txt`.
+  Both Ansible and Flask use Jinja2, so a shared venv would tie their versions together.
 
 ## D-016 · Production-minded images
 - **Decision:** Pinned slim Python base (same version via `ARG` in both), non-root user,

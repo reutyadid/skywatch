@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .venv/
+.venv-ansible/
 .pytest_cache/
 .ruff_cache/
 
