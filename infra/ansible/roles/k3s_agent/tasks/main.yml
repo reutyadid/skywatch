@@ -1,9 +1,11 @@
+# A new k3s_version downloads a new binary; the restart makes the running agent use it.
 - name: Download the pinned K3s binary and verify its checksum
   ansible.builtin.get_url:
     url: "{{ k3s_download_url }}/k3s"
     checksum: "sha256:{{ k3s_download_url }}/sha256sum-amd64.txt"
     dest: /usr/local/bin/k3s
     mode: "0755"
+  notify: Restart k3s-agent
 
 # Read at run time from the server, never stored in Git (D-008). no_log keeps it out of the output.
 - name: Read the join token from the server

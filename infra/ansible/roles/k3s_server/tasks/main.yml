@@ -1,9 +1,11 @@
+# A new k3s_version downloads a new binary; the restart makes the running K3s use it.
 - name: Download the pinned K3s binary and verify its checksum
   ansible.builtin.get_url:
     url: "{{ k3s_download_url }}/k3s"
     checksum: "sha256:{{ k3s_download_url }}/sha256sum-amd64.txt"
     dest: /usr/local/bin/k3s
     mode: "0755"
+  notify: Restart k3s
 
 - name: Create the K3s config directory
   ansible.builtin.file:
