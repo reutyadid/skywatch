@@ -46,7 +46,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | R4.2 | Frontend Deployment + Service reachable from the host | `frontend-*.yaml`, NodePort | Browser on `<worker>.mshome.net:<nodePort>` | [x] |
 | R4.3 | Backend Deployment with 2 replicas | `backend-deployment.yaml`, `values.yaml` | `kubectl get deploy` shows 2/2 | [x] |
 | R4.4 | Backend internal Service | `backend-service.yaml` (ClusterIP) | `kubectl get svc` | [x] |
-| R4.5 | Configuration via values and ConfigMaps, not hardcoded in images | `values.yaml`, `*-configmap.yaml` | Change a value, see it applied without a rebuild | [ ] |
+| R4.5 | Configuration via values and ConfigMaps, not hardcoded in images | `values.yaml`, `*-configmap.yaml` | Change a value, see it applied without a rebuild (`LOG_LEVEL` INFO → DEBUG: `docs/images/the-debug-commit.png`, `no-ci-for-values-change.png`, `argo-cd-sync-values-change.png`, `history-for-values-change.png`, `proof-from-terminal.png`) | [x] |
 | R4.6 | Readiness and liveness probes on every container | Deployments | `verify.yml` | [x] |
 | R4.7 | Resource requests and limits on every container | Deployments | `verify.yml` | [x] |
 | R4.8 | No plaintext secrets in Git | `roles/bootstrap_secrets`, K3s token read at run time | `git grep` finds no secret values | [x] |
