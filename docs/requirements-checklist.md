@@ -31,12 +31,12 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | ID | Requirement | Where | Proof | Status |
 |----|-------------|-------|-------|--------|
 | R3.1 | Small, production-minded Dockerfile per service | `apps/*/Dockerfile` | slim base, non-root, `.dockerignore`, image size | [x] |
-| R3.2 | Pipeline runs on every push to `main` | `.github/workflows/ci.yaml` | Actions run history | [ ] |
-| R3.3 | Lints the code | `ci.yaml` lint job | Job log | [ ] |
-| R3.4 | Builds both images | `ci.yaml` build job | Job log | [ ] |
-| R3.5 | Pushes to GHCR tagged with the commit SHA | `ci.yaml` | GHCR package tags match commit SHAs | [ ] |
-| R3.6 | Updates image tags in the Helm values in Git | `ci.yaml` bump job | Bot commit changing `values.yaml` | [ ] |
-| R3.7 | Tag-update commit does not retrigger the pipeline | `GITHUB_TOKEN`, `paths-ignore`, `[skip ci]` | One run per push in Actions history | [ ] |
+| R3.2 | Pipeline runs on every push to `main` | `.github/workflows/ci.yaml` | Actions run history | [x] |
+| R3.3 | Lints the code | `ci.yaml` lint job | Job log | [x] |
+| R3.4 | Builds both images | `ci.yaml` build job | Job log | [x] |
+| R3.5 | Pushes to GHCR tagged with the commit SHA | `ci.yaml` | GHCR package tags match commit SHAs | [x] |
+| R3.6 | Updates image tags in the Helm values in Git | `ci.yaml` bump job | Bot commit changing `values.yaml` | [x] |
+| R3.7 | Tag-update commit does not retrigger the pipeline | `GITHUB_TOKEN`, `paths-ignore`, `[skip ci]` | One run per push in Actions history | [x] |
 
 ## 4. Helm chart
 
