@@ -162,6 +162,8 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **Caching:** buildx `type=gha` layer cache, pip cache.
 - **Lint:** ruff (Python), hadolint (Dockerfiles, run from its pinned image so nothing is installed
   on the host), `docker build --check` (Docker's own Dockerfile checks), `helm lint`.
+  `docker build --check` runs only in CI: it needs Docker 27+, and the local Docker Desktop (24.0.6)
+  is kept as is for now.
 
 ## D-019 · Preventing a CI trigger loop
 - **Decision:** Three layers: the bump commit is pushed with `GITHUB_TOKEN` (which does not
