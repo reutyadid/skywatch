@@ -22,9 +22,9 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | R2.2 | Ansible roles install K3s on the control plane | `roles/k3s_server` | Role code, server node Ready | [x] |
 | R2.3 | Ansible roles join the workers | `roles/k3s_agent` | `kubectl get nodes` shows 3 nodes Ready | [x] |
 | R2.4 | K3s version pinned | `inventory/group_vars/all.yml` | `kubectl get nodes` shows the pinned version | [x] |
-| R2.5 | Playbook is idempotent: re-run on a healthy cluster changes nothing | All roles, handlers | Second `make cluster` ends with `changed=0` | [x] |
+| R2.5 | Playbook is idempotent: re-run on a healthy cluster changes nothing | All roles, handlers | Second `make cluster` ends with `changed=0`; `make down && make up` passed twice in a row (stage 10) | [x] |
 | R2.6 | `kubectl` works from the host | `roles/kubeconfig` | `kubectl get nodes` from the WSL shell | [x] |
-| R2.7 | No application workloads on the control plane | `roles/k3s_server` taint | Proven manually: `kubectl get pods -n skywatch -o wide` shows only workers. Automated in `verify.yml` (stage 10) | [x] |
+| R2.7 | No application workloads on the control plane | `roles/k3s_server` taint | Proven manually: `kubectl get pods -n skywatch -o wide` shows only workers. Checked on every `make up` by `verify.yml` | [x] |
 
 ## 3. Containerization and CI
 
@@ -47,8 +47,8 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | R4.3 | Backend Deployment with 2 replicas | `backend-deployment.yaml`, `values.yaml` | `kubectl get deploy` shows 2/2 | [x] |
 | R4.4 | Backend internal Service | `backend-service.yaml` (ClusterIP) | `kubectl get svc` | [x] |
 | R4.5 | Configuration via values and ConfigMaps, not hardcoded in images | `values.yaml`, `*-configmap.yaml` | Change a value, see it applied without a rebuild (`LOG_LEVEL` INFO → DEBUG: `docs/images/the-debug-commit.png`, `no-ci-for-values-change.png`, `argo-cd-sync-values-change.png`, `history-for-values-change.png`, `proof-from-terminal.png`) | [x] |
-| R4.6 | Readiness and liveness probes on every container | Deployments | Proven manually: rendered Deployments, pods Ready. Automated in `verify.yml` (stage 10) | [x] |
-| R4.7 | Resource requests and limits on every container | Deployments | Proven manually: rendered Deployments, `kubectl top`. Automated in `verify.yml` (stage 10) | [x] |
+| R4.6 | Readiness and liveness probes on every container | Deployments | Proven manually: rendered Deployments, pods Ready. Checked on every `make up` by `verify.yml` | [x] |
+| R4.7 | Resource requests and limits on every container | Deployments | Proven manually: rendered Deployments, `kubectl top`. Checked on every `make up` by `verify.yml` | [x] |
 | R4.8 | No plaintext secrets in Git | K3s token read at run time (`roles/k3s_agent`); Grafana Secret from `roles/bootstrap_secrets` (stage 9) | `git grep` finds no secret values | [x] |
 | R4.9 | Secret handling approach explained ("Explain your approach") | README section (stage 11), details in D-008, D-023 | README | [ ] |
 

@@ -136,6 +136,19 @@ Done right after `create-vms.sh` and `cloud-init/base.yaml` work.
 - [x] Results recorded in `docs/troubleshooting.md` (networking) and above (checks)
 - If SSH by name or the reboot check fails and the fixes don't help → fallback to Path B (D-001).
 
+## Stage 10: bring-up results
+- [x] `make verify` on the running cluster: `ok=12 changed=0 failed=0`. Checked that it fails when
+      the cluster differs from the requirements (wrong K3s version, wrong replica count via `-e`).
+- [x] `site.yml` with the new `wait_for_connection` play on a healthy cluster: still `changed=0`.
+- [x] `make down && make up`, run 1: about 17 minutes, `failed=0`, `make verify` green. Every VM
+      answered SSH on the first try. ArgoCD needed about 4.5 minutes to make `monitoring` Healthy
+      (29 retries in total; the limit is 60 per app).
+- [x] `make down && make up`, run 2: `failed=0`, `make verify` green (32 retries in total).
+- Stopped VMs after a host reboot: not a risk. The stage 6 reboot check showed the VMs start on
+  their own, so `create-vms.sh` needs no `multipass start`.
+- [ ] Full host reboot with the cluster installed (K3s, ArgoCD and the apps come back on new IPs):
+      after submission, before the review session.
+
 ## Rules while working
 - Git: stages 1–4 on `dev`. Stage 5 starts with one PR `dev` → `main`. After that, commit directly to `main`.
 - Every problem → entry in `docs/troubleshooting.md` as soon as it is solved (symptom, cause, fix).
