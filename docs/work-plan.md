@@ -127,12 +127,14 @@ Done right after `create-vms.sh` and `cloud-init/base.yaml` work.
 - [x] SSH from WSL to each VM **by name** (`<vm>.mshome.net`)
 - [x] `ansible all -m ping` from WSL succeeds by name
 - [x] Each VM resolves and pings the others by name (agents will reach the server by name)
-- [ ] Reboot the host → names still resolve, SSH and Ansible ping still work
-      (decides static vs generated inventory, D-004)
+- [x] Reboot the host → names still resolve, SSH and Ansible ping still work
+      (decides static vs generated inventory, D-004). Result: the whole Default Switch network
+      moved (172.31.x.x → 192.168.16x.x), names followed, VMs started on their own. After
+      re-enabling forwarding, SSH, Ansible ping and VM-to-VM names all worked. Static inventory.
 - [x] `ip -br addr` and `swapon --show` on one VM → decide what goes into the `common` role (D-006).
       Result on a test VM (Ubuntu 24.04): one NIC (`eth0`), no swap. So no swap task and no
       `--node-ip` / `--flannel-iface`.
-- [ ] Results recorded in `docs/troubleshooting.md`
+- [x] Results recorded in `docs/troubleshooting.md` (networking) and above (checks)
 - If SSH by name or the reboot check fails and the fixes don't help → fallback to Path B (D-001).
 
 ## Rules while working

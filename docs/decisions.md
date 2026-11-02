@@ -50,9 +50,10 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   kubeconfig and the agents' connection to the server. Names stay the same.
 - **Inventory vs DNS:** DNS tells K3s *where* the server is. The inventory tells Ansible *which*
   machines exist and *what role* each plays. Both are needed.
-- **Decided at the start of stage 6:** if names resolve reliably from WSL and between VMs, also
-  after a host reboot, the inventory is a static file in Git. If not, a script generates it from
-  `multipass list` before each run, and the README says to re-run `make up` after a host reboot.
+- **Decided at the start of stage 6: static inventory in Git.** The check confirmed the reason for
+  names: after a host reboot every VM got a new address, and the whole Default Switch network moved
+  (172.31.x.x → 192.168.16x.x). The names followed, from WSL and between VMs, so nothing that uses
+  names had to change.
 
 ## D-005 · Own Ansible roles
 - **Decision:** Roles written from scratch: `common`, `k3s_server`, `k3s_agent`, `kubeconfig`,
