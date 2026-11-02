@@ -1,0 +1,20 @@
+# Bootstrap only (D-022): ArgoCD itself and the root app. Everything else comes from Git.
+- name: Install ArgoCD from its official Helm chart
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig_path }}"
+    release_name: argocd
+    release_namespace: argocd
+    create_namespace: true
+    chart_ref: argo-cd
+    chart_repo_url: https://argoproj.github.io/argo-helm
+    chart_version: "{{ argocd_chart_version }}"
+    values_files:
+      - "{{ repo_root }}/argocd/values.yaml"
+    wait: true
+
+# The root app watches argocd/apps/ in Git and creates every Application found there (app-of-apps).
+- name: Create the root app
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    src: "{{ repo_root }}/argocd/root-app.yaml"
+    state: present

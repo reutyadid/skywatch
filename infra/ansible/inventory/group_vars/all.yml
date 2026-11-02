@@ -5,3 +5,11 @@ k3s_download_url: "https://github.com/k3s-io/k3s/releases/download/{{ k3s_versio
 
 # Workers and kubectl reach the server by name: its IP changes on every host reboot (D-004).
 k3s_server_name: sw-server.mshome.net
+
+# Repo root, from infra/ansible/playbooks/.
+repo_root: "{{ playbook_dir }}/../../.."
+# Written by the kubeconfig role, used by the argocd role. Ignored by Git (.gitignore: /kubeconfig).
+kubeconfig_path: "{{ repo_root }}/kubeconfig"
+
+# Official ArgoCD chart (D-022). Chart 10.11.6 = ArgoCD v3.5.6.
+argocd_chart_version: 10.11.6

@@ -1,0 +1,22 @@
+# Deploys charts/skywatch from main (R5.2). The Helm release is named after the app: "skywatch".
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: skywatch
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/reutyadid/skywatch.git
+    targetRevision: main
+    path: charts/skywatch
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: skywatch
+  syncPolicy:
+    # prune: delete what was removed from Git. selfHeal: undo manual changes in the cluster (R5.3).
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

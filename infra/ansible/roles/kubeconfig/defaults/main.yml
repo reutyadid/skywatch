@@ -1,2 +1,0 @@
-# Repo root, next to the Makefile. Ignored by Git (.gitignore: kubeconfig).
-kubeconfig_path: "{{ playbook_dir }}/../../../kubeconfig"

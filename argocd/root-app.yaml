@@ -1,0 +1,20 @@
+# App-of-apps (B2): creates every Application in argocd/apps/. Applied once by Ansible;
+# after that, adding an app is a commit to argocd/apps/.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/reutyadid/skywatch.git
+    targetRevision: main
+    path: argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

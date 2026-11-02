@@ -1,0 +1,10 @@
+# Values for the official argo/argo-cd chart, installed by the argocd Ansible role (D-022).
+# Only what differs from the chart defaults.
+
+# Dex adds single sign-on. Not needed: the UI is reached with the built-in admin user.
+dex:
+  enabled: false
+
+# Notifications send messages to Slack, email, etc. Nothing is configured, so leave it off.
+notifications:
+  enabled: false

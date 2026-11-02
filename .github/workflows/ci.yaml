@@ -49,6 +49,7 @@ jobs:
             -r apps/frontend/requirements-test.txt
           python -m venv .venv-ansible
           .venv-ansible/bin/pip install -r infra/ansible/requirements.txt
+          .venv-ansible/bin/ansible-galaxy collection install -r infra/ansible/requirements.yml
 
       - name: Lint (ruff, helm lint, ansible-lint, hadolint)
         run: make lint

@@ -16,3 +16,14 @@
   become: true
   roles:
     - kubeconfig
+
+# Runs in WSL against the Kubernetes API, not over SSH.
+- name: Bootstrap ArgoCD
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # The kubernetes library lives in .venv-ansible, not in the system Python.
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - argocd

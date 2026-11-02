@@ -1,0 +1,5 @@
+# Ansible collections. Install: ansible-galaxy collection install -r infra/ansible/requirements.yml
+collections:
+  # Helm and Kubernetes modules for the argocd role. Helm v4 support since 6.4.0.
+  - name: kubernetes.core
+    version: 6.6.0
