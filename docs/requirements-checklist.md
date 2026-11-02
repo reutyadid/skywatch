@@ -65,10 +65,10 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 
 | ID | Bonus | Where | Proof | Status |
 |----|-------|-------|-------|--------|
-| B1 | Prometheus + Grafana (kube-prometheus-stack) | `argocd/apps/monitoring.yaml` | Grafana UI | [ ] |
-| B1.1 | App metrics: request count and latency | `prometheus_client` in both apps, ServiceMonitor | Prometheus targets UP, query returns data | [ ] |
-| B1.2 | Dashboard (as code) | `grafana-dashboard.yaml` | Dashboard screenshot | [ ] |
-| B1.3 | Alerts | `prometheusrule.yaml` | Rules visible in Prometheus | [ ] |
+| B1 | Prometheus + Grafana (kube-prometheus-stack) | `argocd/apps/monitoring.yaml` | Grafana UI, login with the `grafana-admin` Secret (`docs/images/grafana-dashboard.png`) | [x] |
+| B1.1 | App metrics: request count and latency | `prometheus_client` in both apps, ServiceMonitor | Prometheus targets UP (2 backend, 1 frontend), `http_requests_total` and `http_request_duration_seconds` return data | [x] |
+| B1.2 | Dashboard (as code) | `grafana-dashboard.yaml` | Dashboard screenshot (`docs/images/grafana-dashboard.png`) | [x] |
+| B1.3 | Alerts | `prometheusrule.yaml` | 5 SkyWatch rules loaded in Prometheus, health `ok` | [x] |
 | B2 | ArgoCD app-of-apps for add-ons | `argocd/root-app.yaml` | ArgoCD UI tree | [x] |
 | B3 | Ingress / Gateway API via Traefik instead of NodePort (end, if time) | TBD | Browser via hostname | [ ] |
 
