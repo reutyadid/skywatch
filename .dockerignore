@@ -1,0 +1,13 @@
+# The build context is the repo root. Exclude everything, then allow only what the images need.
+*
+
+!requirements/constraints.txt
+
+!apps/backend/app.py
+!apps/backend/gunicorn.conf.py
+!apps/backend/requirements.txt
+
+!apps/frontend/app.py
+!apps/frontend/gunicorn.conf.py
+!apps/frontend/requirements.txt
+!apps/frontend/templates/

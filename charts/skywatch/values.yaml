@@ -1,0 +1,10 @@
+# Image tags are set by CI (.github/workflows/ci.yaml). Never edit them by hand.
+# The rest of the chart's values are added in stage 7.
+backend:
+  image:
+    repository: ghcr.io/reutyadid/skywatch-backend
+    tag: ""
+frontend:
+  image:
+    repository: ghcr.io/reutyadid/skywatch-frontend
+    tag: ""
