@@ -230,15 +230,31 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   the whole bring-up in one tool.
 - **Alternatives:** Terraform Helm provider (common in cloud setups; here it would add a tool);
   plain `helm` in a script.
-- **Known gotchas:** kube-prometheus-stack CRDs need `ServerSideApply=true`. The ServiceMonitor
-  depends on monitoring CRDs, so sync `retry` handles ordering. ArgoCD polls Git every ~3 minutes.
+- **Known gotchas:** kube-prometheus-stack CRDs need `ServerSideApply=true`. ArgoCD polls Git every ~3 minutes.
+- **Ordering between `skywatch` and `monitoring`:** ArgoCD dry-runs every resource before applying any,
+  so a missing ServiceMonitor CRD would fail the whole `skywatch` sync, Deployments included. The
+  ServiceMonitor and PrometheusRule carry `SkipDryRunOnMissingResource=true`, so the app deploys
+  anyway, and `skywatch.yaml` has a short `retry` (10s doubling, up to 3m) that applies the two once
+  the CRDs exist. The bonus can never block the app. If the CRDs are not ready within the retry
+  window, the ServiceMonitor and PrometheusRule are applied on the next commit's sync (ArgoCD does
+  not retry a failed automated sync for the same commit); in practice the bot's tag commit after
+  every push triggers it. While the two objects wait, the `skywatch` app shows a failed sync in the
+  ArgoCD UI even though its pods are running and healthy; this is expected and clears after the retry.
+- **In a larger setup:** install CRDs first, as their own step, and order Applications with sync waves
+  (needs a custom Application health check in `argocd-cm`). Not worth the extra config here.
+- **Finalizers:** `skywatch` and `monitoring` carry `resources-finalizer.argocd.argoproj.io`, so
+  deleting an Application deletes what it installed instead of leaving orphans. The root app has no
+  finalizer on purpose, so deleting it leaves the child Applications running. A finalizer waits for
+  ArgoCD to delete the resources, so removing ArgoCD before its Applications would hang the deletion;
+  `make down` avoids this by destroying the VMs.
 - **With more time:** ArgoCD managing itself.
 
 ## D-023 · Secrets
 - **Decision:** The `bootstrap_secrets` role generates a random Grafana admin password and creates
   the Secret, **only if it does not already exist** (otherwise every run would change it and break
   idempotency). The monitoring chart references it with `existingSecret`. Nothing secret is in Git.
-- **Why:** Works for anyone who clones the repo, and is simple and clear.
+- **Why:** Works for anyone who clones the repo, and is simple and clear. `existingSecret` also avoids
+  an ArgoCD OutOfSync loop: without it, the Grafana chart renders a new random password on every sync.
 - **Not Sealed Secrets / SOPS / ansible-vault:** all need a key that belongs to one cluster or one
   person. A reviewer bringing up a fresh cluster would not have it, and the bring-up would break.
 - **Production / with more time:** External Secrets Operator backed by Vault (or a cloud secret manager).
@@ -266,8 +282,22 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 ## D-026 · Observability as the bonus
 - **Decision:** kube-prometheus-stack via ArgoCD. App metrics: request count, latency histogram,
   upstream (Open-Meteo) latency and errors. RED dashboard as code. A few PrometheusRule alerts.
-  Alertmanager off or minimal, short retention, explicit resources.
 - **Why:** The task prefers depth in one bonus. Upstream metrics answer "is it slow here or at Open-Meteo?".
+- **Built in stage 9:** chart `kube-prometheus-stack` 92.17.0 in `argocd/apps/monitoring.yaml`, release
+  name `monitoring`. This is the usual way to run Prometheus on Kubernetes: the Prometheus Operator, with
+  each app describing its own monitoring (ServiceMonitor, PrometheusRule, dashboard ConfigMap) in its chart.
+- **Lean settings for 2 small workers:** 2 days retention (1GB cap), no persistent volume, memory limits
+  on every component but no CPU limits (they throttle and fire the chart's `CPUThrottlingHigh`).
+  Alertmanager on but minimal: 1 replica, the chart's default `null` receiver, so alerts show in its
+  UI and go nowhere. Admission webhooks off (they run as hook Jobs on every ArgoCD sync), and operator
+  TLS off with them. Scraping off for controller-manager, scheduler, proxy and etcd: K3s doesn't expose
+  them, and its datastore is SQLite.
+- **What Prometheus scrapes:** only ServiceMonitors labelled `release: monitoring` (the chart's default
+  selector), and ours selects only this release's Services, port `http`, path `/metrics`.
+- **Alerts:** 5xx ratio > 5%, p95 > 2s, upstream error ratio > 10%, and backend / frontend down
+  (`absent(up == 1)`, which also fires when the service is gone entirely).
+- **Production / with more time:** persistent storage and 2 Prometheus replicas, long-term storage
+  (Thanos or Mimir), an Alertmanager receiver (Slack, on-call), admission webhooks with cert-manager.
 - **Label name `handler`:** the route label on `http_requests_total` and `http_request_duration_seconds`
   is `handler` (the name the official Prometheus client libraries use), not `endpoint`, because
   Prometheus Operator adds its own `endpoint` label to every scraped series.
@@ -284,6 +314,9 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   `argocd/` how it gets there · `docs/` why.
 - **Why:** Separating app code from infrastructure is a common monorepo convention. `charts/` and
   `argocd/` stay at the root because they are the GitOps layer that CI updates and ArgoCD reads.
+  The task asks for one public repo with all code, manifests, playbooks and pipelines (S1).
+- **In production:** usually split. A platform repo holds ArgoCD, monitoring and anything shared; each
+  app repo holds its code, its chart and its own ServiceMonitor and alerts.
 
 ## D-028 · Make as a thin menu
 - **Decision:** `Makefile` targets only call scripts and playbooks.
