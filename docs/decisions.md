@@ -27,10 +27,21 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   In a cloud setup the provisioning part would be Terraform.
 
 ## D-003 · Host networking and project location
-- **Decision:** WSL in `networkingMode=mirrored`. The project lives inside the WSL filesystem, not under `/mnt/c`.
-- **Why:** In NAT mode WSL often cannot reach Hyper-V VMs. Under `/mnt/c`, Ansible ignores
-  `ansible.cfg` (world-writable directory) and SSH keys fail on permissions.
-- **Known conflicts:** VPN clients or Docker Desktop can interfere with mirrored networking.
+- **Decision:** WSL in `networkingMode=nat`, with IP forwarding enabled on Windows between the
+  `vEthernet (WSL*)` and `vEthernet (Default Switch)` adapters. The project lives inside the WSL
+  filesystem, not under `/mnt/c`.
+- **Why NAT and not mirrored:** mirrored mode only mirrors the physical adapters, so WSL has no route
+  to the Default Switch network where the VMs live (`No route to host`). The WSL team confirms that
+  mirrored mode does not support reaching other VMs on the host (microsoft/WSL#11494). In NAT mode,
+  Windows is WSL's router; once forwarding is on, it passes traffic to the VMs and back.
+  Tested at the start of stage 6: name resolution, ping and SSH by name all work.
+- **Cost:** forwarding resets on every host reboot, so the admin PowerShell command must be run again
+  (README). A scheduled task could automate it; kept manual so every step stays visible.
+- **Known conflict:** a VM that runs Docker can have a bridge network (e.g. `172.17.0.0/16`) that covers
+  WSL's NAT address; that VM then sends its replies into Docker and the connection times out. The
+  cluster VMs run no Docker, and K3s uses `10.42.0.0/16` and `10.43.0.0/16`.
+- **Why the WSL filesystem:** under `/mnt/c`, Ansible ignores `ansible.cfg` (world-writable directory)
+  and SSH keys fail on permissions.
 
 ## D-004 · Addressing: DNS names + inventory
 - **Decision:** Machines are addressed by their Hyper-V Default Switch DNS names

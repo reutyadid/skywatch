@@ -114,8 +114,9 @@ make test      pytest for both services
 
 ## Host setup (before stage 1)
 - [x] RAM: 24 GB installed (16 + 8), 21.9 GB usable
-- [x] `.wslconfig`: `networkingMode=mirrored`, `memory=4GB`, `processors=4`
-- [ ] Raise to `memory=6GB` at stage 4 (Docker builds), then `wsl --shutdown`
+- [x] `.wslconfig`: `networkingMode=nat`, `processors=4` (D-003)
+- [x] Raised to `memory=6GB` at stage 4 (Docker builds)
+- [ ] After every host reboot: enable forwarding between WSL and the Default Switch (D-003, README)
 - [x] `make` installed in WSL
 - [x] `python3.12-venv` installed in WSL
 - [x] Project lives in the WSL filesystem (`~/projects/skywatch`), not under `/mnt/c`
@@ -127,7 +128,9 @@ Done right after `create-vms.sh` and `cloud-init/base.yaml` work.
 - [ ] `ansible all -m ping` from WSL succeeds by name
 - [ ] Reboot the host → names still resolve, SSH and Ansible ping still work
       (decides static vs generated inventory, D-004)
-- [ ] `ip -br addr` and `swapon --show` on one VM → decide what goes into the `common` role (D-006)
+- [x] `ip -br addr` and `swapon --show` on one VM → decide what goes into the `common` role (D-006).
+      Result on a test VM (Ubuntu 24.04): one NIC (`eth0`), no swap. So no swap task and no
+      `--node-ip` / `--flannel-iface`.
 - [ ] Results recorded in `docs/troubleshooting.md`
 - If SSH by name or the reboot check fails and the fixes don't help → fallback to Path B (D-001).
 

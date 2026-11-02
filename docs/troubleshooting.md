@@ -27,6 +27,24 @@ Format for each entry:
 - **Cause:** from the root, ruff cannot tell that `app` is our own module, so it sorts it as a third-party package.
 - **Fix:** run ruff from the service folder, as `make lint` does.
 
+## WSL cannot reach the Multipass VMs
+- **Symptom:** from WSL, `<vm>.mshome.net` resolves, but ping and SSH fail with `No route to host`.
+  From Windows, the same VM answers.
+- **Cause:** WSL was in `networkingMode=mirrored`, which mirrors only the physical adapters. WSL had
+  no route to the Default Switch network (`172.31.208.0/20`). The WSL team confirms mirrored mode
+  does not support reaching other VMs on the host (microsoft/WSL#11494).
+- **Fix:** `networkingMode=nat` in `.wslconfig`, `wsl --shutdown`, then in an admin PowerShell:
+  ```
+  Get-NetIPInterface | Where-Object { $_.InterfaceAlias -like 'vEthernet (WSL*' -or $_.InterfaceAlias -eq 'vEthernet (Default Switch)' } | Set-NetIPInterface -Forwarding Enabled
+  ```
+  Forwarding resets on every host reboot, so run it again after each reboot.
+
+## One VM still times out after the NAT fix
+- **Symptom:** after the fix, a VM that runs Docker still times out, while a fresh VM works.
+- **Cause:** WSL's NAT address (`172.17.245.215`) is inside the VM's Docker bridge (`172.17.0.0/16`),
+  so the VM sends its replies into Docker instead of back to Windows.
+- **Fix:** none needed for the cluster: its VMs run no Docker. For such a VM, change Docker's address range.
+
 ## A stopped backend shows "took too long" locally
 - **Symptom:** with the backend stopped, the frontend waits the full 10s and returns 504, not an
   immediate 502 "unavailable".
