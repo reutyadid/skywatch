@@ -59,7 +59,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | R5.1 | ArgoCD installed in the cluster | `roles/argocd` (Helm), `argocd/values.yaml` | `kubectl get pods -n argocd` | [x] |
 | R5.2 | `Application` deploys the chart from the repo | `argocd/apps/skywatch.yaml` | ArgoCD UI shows the app | [x] |
 | R5.3 | Automated sync with prune and self-heal | `syncPolicy` | Delete a resource manually, it comes back | [x] |
-| R5.4 | A **code** change pushed to `main` ends up running in the cluster, no manual commands | CI + ArgoCD | Screenshots or recording: code commit → CI → tag bump → ArgoCD rollout (stage 11). Config-only change already shown (R4.5) | [~] |
+| R5.4 | A **code** change pushed to `main` ends up running in the cluster, no manual commands | CI + ArgoCD | Subtitle added to the home page (`13307e1`): `docs/images/gitops-code-before.png`, `-commit.png`, `-ci.png`, `-bump.png`, `-argocd.png`, `-after.png`. Config-only change shown in R4.5 | [x] |
 
 ## Bonus (chosen)
 
