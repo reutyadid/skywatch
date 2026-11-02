@@ -2,7 +2,7 @@
 backend:
   image:
     repository: ghcr.io/reutyadid/skywatch-backend
-    tag: "316747d93ae7c31a4cacfcaf377835b917b8f62b"
+    tag: "97b5c7f64c4b8ccf5294bc142efd966fe539306e"
   replicas: 2
   port: 8000
   # Becomes the container's environment through a ConfigMap (D-021). Timeouts: D-014.
@@ -21,7 +21,7 @@ backend:
 frontend:
   image:
     repository: ghcr.io/reutyadid/skywatch-frontend
-    tag: "316747d93ae7c31a4cacfcaf377835b917b8f62b"
+    tag: "97b5c7f64c4b8ccf5294bc142efd966fe539306e"
   replicas: 1
   port: 8080
   # Fixed, so the URL never changes: http://<worker>.mshome.net:30080 (D-025).
