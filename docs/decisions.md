@@ -160,7 +160,8 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **Decision:** On PR: lint + test + build (no push). On push to `main`: lint + test + build +
   push to GHCR with the commit SHA tag + bump `values.yaml`.
 - **Caching:** buildx `type=gha` layer cache, pip cache.
-- **Lint:** ruff (Python), hadolint (Dockerfiles), `helm lint`.
+- **Lint:** ruff (Python), hadolint (Dockerfiles, run from its pinned image so nothing is installed
+  on the host), `docker build --check` (Docker's own Dockerfile checks), `helm lint`.
 
 ## D-019 · Preventing a CI trigger loop
 - **Decision:** Three layers: the bump commit is pushed with `GITHUB_TOKEN` (which does not
