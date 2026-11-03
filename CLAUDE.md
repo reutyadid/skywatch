@@ -11,9 +11,8 @@ Bonus focus: observability (Prometheus + Grafana).
 - Work order, layout and stage status: `docs/work-plan.md`
 
 ## Current state
-Built and submitted. Every requirement except S7 (explaining it live) is done and proven
-(see the checklist). Remaining before the live review: the S7 drills.
-No new features; changes now are fixes and documentation.
+The project is complete; the checklist shows what is proven and what is still open.
+Make fixes and documentation changes only; don't propose new features.
 
 ## Principles (in priority order)
 1. **The assignment text comes first.** If the task names a technology or a fact, follow it.
@@ -50,7 +49,7 @@ No new features; changes now are fixes and documentation.
 - Test/lint dependencies live in `requirements-test.txt` and never enter an image.
 - Ansible: declarative modules over `command`/`shell`; when `command` is unavoidable, set
   `creates`/`changed_when`. Config files from templates; restarts only through handlers.
-  No `common` role: the stage 6 checks found nothing to prepare (D-006).
+  No `common` role: the VMs need no preparation beyond cloud-init (D-006).
 - The project lives inside the WSL filesystem, never under `/mnt/c`.
 
 ## Commands
