@@ -83,6 +83,17 @@ Format for each entry:
 - **Fix:** renamed the app label to `handler`, the name the official Prometheus client libraries use.
   The ServiceMonitor keeps the default `honorLabels: false`.
 
+## ArgoCD sync fails: no matches for kind "ServiceMonitor"
+- **Symptom:** the `skywatch` app failed to sync with `resource mapping not found for name: "skywatch"
+  ... no matches for kind "ServiceMonitor" in version "monitoring.coreos.com/v1" ... ensure CRDs are
+  installed first`.
+- **Cause:** the `skywatch` and `monitoring` apps sync in parallel, and the ServiceMonitor CRD comes
+  with kube-prometheus-stack. ArgoCD dry-runs every resource before applying any, so one unknown kind
+  failed the whole sync, Deployments included.
+- **Fix:** `SkipDryRunOnMissingResource=true` on the ServiceMonitor and PrometheusRule, so the app
+  deploys anyway, and a short `retry` in `argocd/apps/skywatch.yaml` that applies the two once the
+  CRDs exist. The monitoring bonus can never block the app. See D-022.
+
 ## K3s API times out after installing monitoring
 - **Symptom:** after ArgoCD installed kube-prometheus-stack, `kubectl` on the server timed out and
   ArgoCD stopped syncing. On `sw-server`, `free -m` showed 56 MB free and the load average was 11.
