@@ -82,8 +82,6 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven · `[-]`
 | S4 | README: problems encountered and solutions | README "Problems and solutions", linking `docs/troubleshooting.md` | README | [x] |
 | S5 | README: what to improve with more time | `README.md` "What I'd improve with more time" | README | [x] |
 | S6 | README: proof of the GitOps flow | README "Proof of the GitOps flow", `docs/images/` | Screenshots of a code change and a config change | [x] |
-| S7 | Able to explain every part live | Whole repo | Review-session drills | [ ] |
-| S8 | Submitted within 7 days | — | Submitted within the 7 days | [x] |
 
 ## Evaluation criteria → covered by
 
@@ -95,4 +93,3 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven · `[-]`
 | Provisioning: reproducible, idempotent Ansible on Path A | R2.1–R2.7, `make down && make up` |
 | Code: readable, minimal, env-configured | R1.5, R1.6 |
 | Documentation: bring-up from README alone | S2 (`make down && make up` from the README) |
-| Review session | S7, drills in `docs/work-plan.md` |
