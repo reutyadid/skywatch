@@ -1,9 +1,9 @@
 # Work plan
 
-Each stage ends with something working end to end. Tick requirement IDs in
-`docs/requirements-checklist.md` as each one is proven.
+Each stage ended with something working end to end, and its requirement IDs were ticked in
+`docs/requirements-checklist.md` as each one was proven.
 
-## Repository layout (target)
+## Repository layout
 ```
 skywatch/
 ├── CLAUDE.md
@@ -40,7 +40,7 @@ skywatch/
 │       ├── requirements.txt         # pip: ansible-core, kubernetes (pinned)
 │       ├── requirements.yml         # galaxy: kubernetes.core (pinned)
 │       ├── inventory/
-│       │   ├── hosts.yml            # *.mshome.net names (static or generated: decided by the stage 6 checks)
+│       │   ├── hosts.yml            # *.mshome.net names, static (D-004)
 │       │   └── group_vars/
 │       │       └── all.yml          # pinned versions: K3s, ArgoCD chart
 │       ├── playbooks/
@@ -136,19 +136,21 @@ Done right after `create-vms.sh` and `cloud-init/base.yaml` work.
 - If SSH by name or the reboot check fails and the fixes don't help → fallback to Path B (D-001).
 
 ## Stage 10: bring-up results
-- [x] `make verify` on the running cluster: `ok=12 changed=0 failed=0`. Checked that it fails when
+- [x] `make verify` on the running cluster: `ok=12 changed=0 failed=0` (before the node IP checks). Checked that it fails when
       the cluster differs from the requirements (wrong K3s version, wrong replica count via `-e`).
 - [x] `site.yml` with the new `wait_for_connection` play on a healthy cluster: still `changed=0`.
 - [x] `make down && make up`, run 1: about 17 minutes, `failed=0`, `make verify` green. Every VM
       answered SSH on the first try. ArgoCD needed about 4.5 minutes to make `monitoring` Healthy
       (29 retries in total; the limit is 60 per app).
 - [x] `make down && make up`, run 2: `failed=0`, `make verify` green (32 retries in total).
-- Stopped VMs after a host reboot: not a risk. The stage 6 reboot check showed the VMs start on
-  their own, so `create-vms.sh` needs no `multipass start`.
-- [ ] Full host reboot with the cluster installed (K3s, ArgoCD and the apps come back on new IPs):
-      after submission, before the review session.
+- Stopped VMs after a host reboot: not a risk. The VMs come back on their own, so `create-vms.sh`
+  needs no `multipass start`. They are restored, not rebooted (`AutomaticStopAction = Save`).
+- [x] Full host reboot with the cluster installed: the VMs came back with new IPs,
+      but K3s kept the old ones, so traffic between VMs and DNS for external names failed.
+      Fixed by restarting K3s and CoreDNS (README step 2, `docs/troubleshooting.md`).
+      `verify.yml` now checks node IPs and the NodePort through every node (D-033).
 
-## Rules while working
+## Rules followed while working
 - Git: stages 1–4 on `dev`. Stage 5 starts with one PR `dev` → `main`. After that, commit directly to `main`.
 - Every problem → entry in `docs/troubleshooting.md` as soon as it is solved (symptom, cause, fix).
 - Small commits, one logical change each, in Git's standard style. The author commits, never the AI.
@@ -162,4 +164,4 @@ Done right after `create-vms.sh` and `cloud-init/base.yaml` work.
 - Delete a Deployment by hand → watch self-heal restore it.
 - Make Open-Meteo slow/unreachable → see it in the upstream panels; pods stay alive.
 - Stop a worker VM → watch pods reschedule; explain what happened to the 2 backend replicas.
-- Reboot the host → bring everything back with `make up`.
+- Reboot the host → enable forwarding, run `make verify`, fix with the README step 2 restarts.

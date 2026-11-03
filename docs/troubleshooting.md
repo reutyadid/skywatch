@@ -48,7 +48,7 @@ Format for each entry:
 ## A stopped backend shows "took too long" locally
 - **Symptom:** with the backend stopped, the frontend waits the full 10s and returns 504, not an
   immediate 502 "unavailable".
-- **Cause:** on this WSL setup (`networkingMode=mirrored`), a connection to any closed `127.0.0.1`
+- **Cause:** on this WSL setup at the time (`networkingMode=mirrored`, before the switch to NAT), a connection to any closed `127.0.0.1`
   port hangs instead of being refused, so `requests` reports a timeout. `[::1]` refuses immediately.
 - **Fix:** none needed; the frontend handles both cases. To test the 502 locally, run it with
   `BACKEND_URL=http://[::1]:8000` while the backend is stopped.
@@ -101,3 +101,21 @@ Format for each entry:
   new CRDs, objects and watches and answering Prometheus scrapes. The VM has no swap, so it thrashed.
 - **Fix:** raised `sw-server` to 3 GB (`multipass stop`, `multipass set local.sw-server.memory=3G`,
   `multipass start`) and matched `create-vms.sh`. About 1.4 GB is now available. See D-010.
+
+## After a Windows reboot, every city search fails
+- **Symptom:** after rebooting the host, the app answered on `sw-worker1` but not through
+  `sw-server` or `sw-worker2`, and every search showed "The weather service is unavailable". Nodes
+  and pods were all Ready. `kubectl get nodes -o wide` showed `192.168.x.x` IPs, while
+  `multipass.exe list` showed `172.21.x.x`.
+- **Cause:** Hyper-V doesn't reboot the VMs with Windows: it saves and restores them
+  (`AutomaticStopAction = Save`). The Default Switch moved to a new address range, so each VM came
+  back with a new IP, but K3s never restarted and kept the old ones. Flannel sent traffic between
+  VMs to addresses that no longer exist. CoreDNS (then on `sw-server`) also still forwarded external
+  names to the old network's DNS server, since a pod's `/etc/resolv.conf` is copied when the pod
+  is created, so the backend could not resolve Open-Meteo.
+- **Fix:** restart `k3s` on the server, then `k3s-agent` on each worker, then
+  `kubectl -n kube-system rollout restart deploy/coredns` (README, step 2). In the first minute each
+  agent restarted 4 times with `failed to find interface with specified node ip`: it read its old
+  IP from the Node object before the kubelet updated it. It then recovered on its own.
+  `make cluster` would not fix this: nothing in the config changed, so no handler restarts K3s.
+  `verify.yml` now catches it (node IP check, NodePort through every node; D-033).

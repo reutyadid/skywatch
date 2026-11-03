@@ -83,7 +83,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven · `[-]`
 | S5 | README: what to improve with more time | `README.md` "What I'd improve with more time" | README | [x] |
 | S6 | README: proof of the GitOps flow | README "Proof of the GitOps flow", `docs/images/` | Screenshots of a code change and a config change | [x] |
 | S7 | Able to explain every part live | Whole repo | Review-session drills | [ ] |
-| S8 | Submitted within 7 days | — | Submitted on 2026-11-03 | [x] |
+| S8 | Submitted within 7 days | — | Submitted within the 7 days | [x] |
 
 ## Evaluation criteria → covered by
 
@@ -94,5 +94,5 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven · `[-]`
 | Helm and Kubernetes: templates, probes, resources, secrets | R4.1–R4.9 |
 | Provisioning: reproducible, idempotent Ansible on Path A | R2.1–R2.7, `make down && make up` |
 | Code: readable, minimal, env-configured | R1.5, R1.6 |
-| Documentation: bring-up from README alone | S2, stranger test |
+| Documentation: bring-up from README alone | S2 (`make down && make up` from the README) |
 | Review session | S7, drills in `docs/work-plan.md` |

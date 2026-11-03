@@ -109,6 +109,32 @@ gets a reply.
 
 </details>
 
+**If the cluster is already installed**, check it with `make verify`. If it fails on
+*Each node's InternalIP is its VM's current IP*, restart K3s (server first), then CoreDNS:
+
+```bash
+ssh ubuntu@sw-server.mshome.net 'sudo systemctl restart k3s'
+ssh ubuntu@sw-worker1.mshome.net 'sudo systemctl restart k3s-agent'
+ssh ubuntu@sw-worker2.mshome.net 'sudo systemctl restart k3s-agent'
+export KUBECONFIG=$PWD/kubeconfig
+kubectl -n kube-system rollout restart deploy/coredns
+make verify
+```
+
+<details>
+<summary>Why this is needed</summary>
+
+Hyper-V doesn't reboot the VMs with Windows: it saves them on shutdown and restores them on boot
+(`AutomaticStopAction = Save`). The network moves to a new address range, so each VM comes back
+with a new IP, but K3s keeps running with the old one. Nodes and pods still look Ready, yet
+traffic between VMs fails, and CoreDNS still forwards external names to the old network's DNS
+server, so every city search fails. Restarting K3s makes each node pick up its new IP. Restarting
+CoreDNS gives it the new DNS server. In the first minute the agents may restart a few times
+(`failed to find interface with specified node ip`) before the node's IP is updated; that is
+expected. Details in [`docs/troubleshooting.md`](docs/troubleshooting.md).
+
+</details>
+
 ### 3. Bring everything up
 
 ```bash
@@ -127,10 +153,11 @@ It takes several minutes (mostly downloads, so it depends on your internet speed
 |---|---|
 | `make vms` | `infra/scripts/create-vms.sh`: launches the 3 Ubuntu 24.04 VMs and puts your SSH key in through cloud-init. Existing VMs are skipped. The first run also downloads the Ubuntu image. |
 | `make cluster` | `infra/ansible/playbooks/site.yml`: waits for SSH, installs the pinned K3s, joins the workers, saves `./kubeconfig`, creates the Grafana admin Secret, installs ArgoCD and applies the root app. ArgoCD then deploys the app and monitoring from Git. |
-| `make verify` | `infra/ansible/playbooks/verify.yml`: waits for ArgoCD, then checks the requirements against the cluster. Read-only. On a running cluster it takes seconds. |
+| `make verify` | `infra/ansible/playbooks/verify.yml`: reads each VM's IP over SSH, then checks the requirements against the cluster, waiting where ArgoCD is still syncing. Read-only. On a running cluster it takes about half a minute. |
 
-**`make vms`** ends with 3 running VMs. The IPs change on every boot; nothing depends on them,
-because everything uses the `<vm>.mshome.net` names:
+**`make vms`** ends with 3 running VMs. The IPs change on every boot; Ansible, kubectl and the
+workers use the `<vm>.mshome.net` names, which follow them. K3s itself keeps the IP each node had
+when it started, so after a Windows reboot it needs a restart (step 2):
 
 ```
 Name                    State             IPv4             Image
@@ -159,13 +186,20 @@ FAILED - RETRYING: [localhost]: Wait until the ArgoCD apps are Synced and Health
 and then ends with:
 
 ```
-localhost                  : ok=12   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+localhost                  : ok=15   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+sw-server.mshome.net       : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+sw-worker1.mshome.net      : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+sw-worker2.mshome.net      : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 ```
 
 It checks: 3 nodes Ready on the pinned K3s version; the server tainted, with no app pods on it;
 the ArgoCD apps `root`, `skywatch` and `monitoring` Synced and Healthy; backend 2/2 and frontend
-1/1; probes and resource limits on every container; the frontend answering from the host; the
-Grafana admin Secret present. Run `make verify` again any time to re-check a running cluster.
+1/1; probes and resource limits on every container; each node's IP matching its VM's current
+IP; the frontend answering through every node, which also tests traffic between VMs; the Grafana
+admin Secret present. Run `make verify` again any time to re-check a running cluster.
+
+`make verify` never calls Open-Meteo: it is often overloaded and would fail a healthy cluster.
+To test a real search, open the app and search a city.
 
 **Also normal:** a readiness probe warning (`connect: connection refused`) in the first seconds
 of a new pod. The probe ran before gunicorn was listening; the pod is Ready a moment later.
@@ -270,10 +304,13 @@ builds almost entirely from cache. A push that changes only docs runs no CI at a
 
 | | `sw-server` (control plane) | `sw-worker1`, `sw-worker2` |
 |---|---|---|
-| Kubernetes | K3s server, CoreDNS, metrics-server | K3s agent, Traefik |
+| Kubernetes | K3s server | K3s agent, Traefik |
 | `skywatch` (the app) | — (tainted `NoSchedule`) | frontend ×1, backend ×2 (one per worker) |
 | `argocd` | — | ArgoCD |
 | `monitoring` | node-exporter only (a DaemonSet) | Prometheus, Grafana, Alertmanager, operator |
+
+K3s's own add-ons (CoreDNS, metrics-server) tolerate the taint, so they can run on any node,
+the server included; a restart can move them.
 
 | Installed by | What |
 |---|---|
@@ -292,7 +329,7 @@ infra/cloud-init/        puts the SSH key into each VM
 infra/ansible/           playbooks/site.yml (bring-up), playbooks/verify.yml (checks), roles/
 .github/workflows/       ci.yaml
 requirements/            constraints.txt: every Python version, pinned once
-docs/                    decisions.md (why), troubleshooting.md, requirements-checklist.md, images/
+docs/                    decisions.md (why), troubleshooting.md, requirements-checklist.md, work-plan.md, images/
 Makefile                 the command menu: make up, down, verify, test, lint
 ```
 
@@ -458,10 +495,18 @@ The most instructive ones. Every problem met is in [`docs/troubleshooting.md`](d
   teams I would separate it: one repo per microservice (its code, CI and its own Helm chart), an
   umbrella Helm chart that composes the services' charts, and separate repos for the infrastructure
   (VMs, Ansible, ArgoCD) and for observability. Each team then owns and releases its part on its own.
-- **Test a full Windows reboot with the cluster installed.** The VMs start on their own after a
-  host reboot and keep their names (checked in stage 6), and restarting one VM is proven (its IP
-  changed, the cluster recovered on its own). Not yet tested: K3s, ArgoCD and the apps all coming
-  back after a full host reboot.
+- **Real VM reboots instead of save and restore.** After a Windows reboot the cluster needs a
+  manual K3s and CoreDNS restart (step 2), because Hyper-V restores the VMs with new IPs
+  (`AutomaticStopAction = Save`). Restarting a single VM already recovers on its own, since K3s
+  starts fresh. Setting `AutomaticStopAction = ShutDown` would give the same on every Windows
+  reboot. Not done because it needs an admin PowerShell (`create-vms.sh` runs in WSL without one),
+  so it would be one more manual step in the bring-up; it resets to `Save` whenever the VMs are
+  recreated; Windows shuts down and boots slower, since every pod restarts; and it needs another
+  full reboot test to prove it also fixes CoreDNS. Another way: let `make cluster` repair it. Each
+  K3s role would save the VM's IP in a small file on the VM, so a new IP changes the file and fires
+  the existing restart handler, then restart CoreDNS. Not done: it changes the bring-up roles, and
+  it needs another reboot plus a full `make down && make up` to test. (Putting the IP in K3s's own
+  config would be simpler, but a single restarted VM would then no longer recover on its own.)
 - **Ingress or Gateway API** through K3s's built-in Traefik, instead of a NodePort.
 - **External Secrets Operator + Vault**, so secrets come from a secret manager.
 - **Log storage** with Loki + Alloy; today logs live only as long as the pod.

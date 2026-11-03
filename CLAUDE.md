@@ -11,8 +11,8 @@ Bonus focus: observability (Prometheus + Grafana).
 - Work order, layout and stage status: `docs/work-plan.md`
 
 ## Current state
-Built and submitted on 2026-11-03. Every requirement is done and proven (see the checklist).
-Remaining before the live review: the full host reboot test and review drills (S7).
+Built and submitted. Every requirement except S7 (explaining it live) is done and proven
+(see the checklist). Remaining before the live review: the S7 drills.
 No new features; changes now are fixes and documentation.
 
 ## Principles (in priority order)
