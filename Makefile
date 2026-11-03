@@ -5,7 +5,7 @@ HADOLINT_IMAGE := hadolint/hadolint:v2.15.1
 help:
 	@echo "make help   list targets"
 	@echo "make vms      create the 3 VMs"
-	@echo "make cluster  install K3s with Ansible, save ./kubeconfig"
+	@echo "make cluster  install K3s and ArgoCD with Ansible, save ./kubeconfig"
 	@echo "make verify   check the requirements against the running cluster"
 	@echo "make up       vms + cluster + verify"
 	@echo "make down     destroy the 3 VMs"
