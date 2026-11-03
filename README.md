@@ -1,6 +1,12 @@
 # SkyWatch
 
 A weather app on a self-managed Kubernetes cluster: 3 local VMs, built with one command.
+Type a city and SkyWatch shows its current temperature and conditions, from Open-Meteo.
+
+Everything runs through `make`. The Makefile is only a short menu; the logic lives in scripts and
+playbooks. `make vms` creates the VMs with a bash script, `make cluster` runs the Ansible playbook,
+`make verify` checks the result against the requirements, and `make up` runs all three in order.
+`make help` lists every target.
 
 **`make up` gives you:**
 - A 3-node **K3s** cluster (1 control plane + 2 workers) on Multipass VMs, installed by Ansible
@@ -249,6 +255,10 @@ flowchart LR
   K -->|pulls image| R
 ```
 
+CI caches pip downloads and Docker layers in the GitHub Actions cache, one cache per service. Both
+images are built on every push and tagged with its SHA, but a service whose code didn't change
+builds almost entirely from cache. A push that changes only docs runs no CI at all.
+
 **What runs where.** `make up` builds the cluster and installs ArgoCD; ArgoCD installs the rest.
 
 | | `sw-server` (control plane) | `sw-worker1`, `sw-worker2` |
@@ -284,39 +294,30 @@ Makefile                 the command menu: make up, down, verify, test, lint
 Each one in a line; the D-number links to the full reasoning and the alternatives in
 [`docs/decisions.md`](docs/decisions.md).
 
-1. **Our own Ansible roles, not the `k3s-ansible` collection or the `get.k3s.io` script.** The pinned
-   K3s binary is downloaded and checked against its SHA-256; every step is visible, explainable and
-   idempotent (a second run gives `changed=0`). ([D-005](docs/decisions.md#d-005--own-ansible-roles))
-2. **Bash creates the VMs, Ansible configures them.** Creating machines and configuring them are
-   different jobs, and Ansible has no Multipass module. In the cloud, the first part would be
-   Terraform. ([D-002](docs/decisions.md#d-002--provisioning-vs-configuration))
-3. **Machines are addressed by name (`sw-server.mshome.net`), never by IP.** Every VM gets a new IP
-   after a host reboot; the names follow, so the inventory, the K3s join and the kubeconfig keep
-   working. ([D-004](docs/decisions.md#d-004--addressing-dns-names--inventory))
-4. **The control plane is tainted explicitly.** K3s, unlike kind, does not taint its server by
-   default, so app pods would otherwise land on it. ([D-007](docs/decisions.md#d-007--k3s-configuration))
-5. **Ansible bootstraps ArgoCD; ArgoCD installs everything else from Git (app-of-apps).** ArgoCD
-   can't install itself the first time. After that, Ansible never touches the app or monitoring, so
-   two tools never manage the same resource.
+1. **Ansible bootstraps ArgoCD; ArgoCD installs everything else from Git (app-of-apps).** ArgoCD
+   can't install itself the first time, so Ansible installs it from its official Helm chart and
+   applies one root app. From then on, the root app creates the `skywatch` and `monitoring` apps from
+   `argocd/apps/`, and Ansible never touches them, so two tools never manage the same resource.
    ([D-022](docs/decisions.md#d-022--argocd-installed-by-ansible-with-helm-then-app-of-apps))
-6. **One Helm chart for both services.** They are built by one pipeline, tagged with one commit SHA
-   and always released together. ([D-020](docs/decisions.md#d-020--one-helm-chart-no-subcharts))
-7. **The CI bump commit cannot retrigger CI, in three independent ways:** it is pushed with
+2. **One Helm chart for both services, no subcharts.** They are built by one pipeline, tagged with
+   one commit SHA and always released together, so one chart with one file per resource is the
+   simplest fit. ([D-020](docs/decisions.md#d-020--one-helm-chart-no-subcharts))
+3. **The CI bump commit cannot retrigger CI, in three independent ways:** it is pushed with
    `GITHUB_TOKEN` (which starts no workflows), `values.yaml` is in `paths-ignore`, and the message
    has `[skip ci]`. Any one of them could be changed by mistake later.
    ([D-019](docs/decisions.md#d-019--preventing-a-ci-trigger-loop))
-8. **One `/healthz` for both probes, and no probe calls Open-Meteo (or, for the frontend, the
-   backend).** Otherwise an Open-Meteo outage would restart healthy pods in a loop, or take every
-   backend pod out of service at once. ([D-017](docs/decisions.md#d-017--one-health-endpoint-two-probes))
-9. **Timeouts grow outward: Open-Meteo 5s < frontend→backend 10s < gunicorn 30s.** Each layer waits
-   longer than the one below it, so a slow upstream shows up as a clear error, not a hang.
-   ([D-014](docs/decisions.md#d-014--timeout-chain))
-10. **gunicorn runs 1 worker with threads per pod; scaling is by replicas.** The app mostly waits on
-    HTTP, so threads are enough, and a single process keeps the Prometheus counters correct.
-    ([D-012](docs/decisions.md#d-012--gunicorn-with-1-worker--n-threads))
-11. **All configuration comes from ConfigMaps, and a config change restarts the pods by itself.** Each
-    Deployment carries a checksum of its ConfigMap, so changing a value in Git rolls the pods with
-    no rebuild. ([D-021](docs/decisions.md#d-021--configuration-through-values-and-configmaps))
+4. **gunicorn runs 1 worker with threads per pod; scaling is by replicas.** The app mostly waits on
+   HTTP, so threads are enough. With several worker processes, each would keep its own Prometheus
+   counters and a scrape would hit a random one, so the numbers would jump backwards.
+   ([D-012](docs/decisions.md#d-012--gunicorn-with-1-worker--n-threads))
+5. **One shared constraints file pins every Python version.** `requirements/constraints.txt` is the
+   single source of truth; each service lists only package names. The two services can't drift to
+   different versions of the same library.
+   ([D-015](docs/decisions.md#d-015--shared-constraints-file-for-dependency-versions))
+6. **Logs are JSON to stdout only: no log files, no volumes.** The kubelet stores and rotates them
+   on the node, and `kubectl logs` reads them. A volume for log files would also break with 2 backend
+   replicas on different nodes, since a ReadWriteOnce volume can't be shared between them.
+   ([D-024](docs/decisions.md#d-024--logs))
 
 ## Secret handling
 
@@ -420,12 +421,22 @@ The most instructive ones. Every problem met is in [`docs/troubleshooting.md`](d
 - Fix: `networkingMode=nat`, plus enabling IP forwarding between the two adapters in Windows
   (step 2 of the bring-up).
 
+**ArgoCD failed to sync the app: no matches for kind "ServiceMonitor"**
+- Symptom: the `skywatch` app failed to sync, Deployments included, with `no matches for kind
+  "ServiceMonitor" in version "monitoring.coreos.com/v1"`.
+- Cause: the `skywatch` and `monitoring` apps sync in parallel, and the ServiceMonitor CRD comes with
+  monitoring. ArgoCD dry-runs every resource before applying any, so one unknown kind failed the
+  whole sync.
+- Fix: `SkipDryRunOnMissingResource=true` on the ServiceMonitor and PrometheusRule, plus a short
+  sync `retry` that applies them once the CRDs exist. The monitoring bonus can never block the app.
+
 **The K3s API timed out after monitoring was installed**
-- Symptom: `kubectl` timed out and ArgoCD stopped syncing; on the server, 56 MB of RAM free and a
-  load of 11.
-- Cause: the control plane had 2 GB. The API server holds every object and CRD in memory, and
-  kube-prometheus-stack added many; with no swap, the VM thrashed.
-- Fix: the control plane VM now has 3 GB (~1.4 GB stays free).
+- Symptom: `kubectl` timed out and ArgoCD stopped syncing. On `sw-server`, `free -m` showed 56 MB
+  free and the load average was 11.
+- Cause: the 2 GB control plane was too small. The K3s server grew to ~1.5 GB holding the new CRDs,
+  objects and watches, and the VM has no swap, so it thrashed.
+- Fix: raised `sw-server` to 3 GB, in `create-vms.sh` too. About 1.4 GB is now free.
+  ([D-010](docs/decisions.md#d-010--resource-sizing))
 
 **Real cities showed "The weather service is unavailable"**
 - Symptom: many searches failed, while an unknown city still got "City not found".
@@ -434,28 +445,27 @@ The most instructive ones. Every problem met is in [`docs/troubleshooting.md`](d
 - Fix: none needed in the code. The backend turns upstream errors into a clear 502, the pods stay
   healthy (no probe calls Open-Meteo), and the dashboard shows the upstream error rate.
 
-**A metric label was silently renamed**
-- Symptom: grouping requests `by (endpoint)` would show one value, `http`, for every route.
-- Cause: Prometheus Operator adds its own `endpoint` label to every scraped series and renames the
-  app's label to `exported_endpoint`.
-- Fix: the app's label is called `handler`, the name the official Prometheus client libraries use.
-
-**The kubeconfig role was missing from Git**
-- Symptom: `git add infra/` staged every Ansible role except `roles/kubeconfig/`.
-- Cause: the `.gitignore` line `kubeconfig` matched any file *or folder* with that name.
-- Fix: `/kubeconfig`, which matches only the credentials file in the repo root.
-
 ## What I'd improve with more time
 
-- **Test a full Windows reboot.** Restarting one VM is proven (its IP changed, the cluster
-  recovered on its own). Not yet tested: whether Multipass restarts the VMs after a host reboot.
-  If it doesn't, `create-vms.sh` should start existing VMs instead of only skipping them.
+- **Split the monorepo in a real project.** One repo fits a one-person assignment, but with several
+  teams I would separate it: one repo per microservice (its code, CI and its own Helm chart), an
+  umbrella Helm chart that composes the services' charts, and separate repos for the infrastructure
+  (VMs, Ansible, ArgoCD) and for observability. Each team then owns and releases its part on its own.
+- **Test a full Windows reboot with the cluster installed.** The VMs start on their own after a
+  host reboot and keep their names (checked in stage 6), and restarting one VM is proven (its IP
+  changed, the cluster recovered on its own). Not yet tested: K3s, ArgoCD and the apps all coming
+  back after a full host reboot.
 - **Ingress or Gateway API** through K3s's built-in Traefik, instead of a NodePort.
 - **External Secrets Operator + Vault**, so secrets come from a secret manager.
 - **Log storage** with Loki + Alloy; today logs live only as long as the pod.
 - **High availability:** 2 frontend replicas, an HPA for the backend, Prometheus with persistent
   storage, and an Alertmanager receiver (Slack or on-call) so alerts reach someone.
 - **Branch protection** on `main` with required reviews, and a dedicated identity for the CI bot.
+- **ArgoCD sync waves** instead of the skip-dry-run and retry workaround for the ServiceMonitor CRD:
+  install the CRDs first as their own step, then order the apps (CRDs, monitoring, app) with
+  `argocd.argoproj.io/sync-wave`, so each one starts only after the one before it is healthy.
+  For Applications this also needs a custom health check in `argocd-cm`
+  ([D-022](docs/decisions.md#d-022--argocd-installed-by-ansible-with-helm-then-app-of-apps)).
 - **ArgoCD managing its own installation**, so even its upgrades go through Git.
 
 ## AI use
