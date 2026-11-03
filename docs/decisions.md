@@ -54,6 +54,9 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   names: after a host reboot every VM got a new address, and the whole Default Switch network moved
   (172.31.x.x → 192.168.16x.x). The names followed, from WSL and between VMs, so nothing that uses
   names had to change.
+- **Limit found later (D-033):** K3s itself keeps the IP each node had when it started. Hyper-V
+  restores the VMs after a Windows reboot instead of rebooting them, so K3s must be restarted to
+  pick up the new IPs. The names still work; only K3s's own copy goes stale.
 
 ## D-005 · Own Ansible roles
 - **Decision:** Roles written from scratch: `k3s_server`, `k3s_agent`, `kubeconfig`,
@@ -80,7 +83,8 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **Why the explicit taint:** unlike kind, K3s does **not** taint the server by default, so without
   it app pods would be scheduled on the control plane.
 - **Built-ins kept:** Traefik, ServiceLB, local-path, metrics-server stay enabled (K3s defaults;
-  disabling them is also a decision that would need a reason). Traefik enables the Ingress bonus later.
+  disabling them is also a decision that would need a reason). Traefik would serve the Ingress bonus
+  (not done; see the README's "What I'd improve").
 
 ## D-008 · K3s join token: not stored anywhere
 - **Decision:** The server generates the token on first install. The `k3s_agent` role reads it from
@@ -228,7 +232,7 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **Built in stage 8:** chart `argo-cd` 10.11.6 (ArgoCD v3.5.6) with `kubernetes.core` 6.6.0 (Helm v4
   support since 6.4.0). The play runs on `localhost` with `.venv-ansible`'s Python, where the
   `kubernetes` library lives. Dex and notifications are off. The UI is reached with
-  `kubectl port-forward`. The `bootstrap_secrets` role arrives with monitoring in stage 9.
+  `kubectl port-forward`. The `bootstrap_secrets` role was added with monitoring in stage 9.
 - **Why Ansible for the bootstrap:** installing ArgoCD once with an outside tool, then letting it
   manage everything from Git, is the usual pattern; the tool varies (Terraform in the cloud, Ansible
   when Ansible already builds the cluster). It keeps `make cluster` one idempotent command.
@@ -353,7 +357,7 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **Why:** The task allows AI but requires understanding every part. The instruction file explains
   what to do; the permission rule enforces it.
 
-## D-031 · Deferred (only if time, in this order)
+## D-031 · Deferred (not done; in the README's "What I'd improve")
 1. Ingress or Gateway API through the built-in Traefik.
 2. External Secrets Operator + Vault.
 3. Loki + Alloy for log storage.
@@ -369,8 +373,10 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 
 ## D-033 · Verification playbook and bring-up waits
 - **Decision:** `playbooks/verify.yml` checks the running cluster against the requirements checklist:
-  nodes, K3s version, taint, ArgoCD apps, replicas, probes, resources, NodePort and the Grafana Secret.
-  It only reads state (`k8s_info`, `assert`, `uri`). `make up` = `vms` + `cluster` + `verify`.
+  nodes, node IPs, K3s version, taint, ArgoCD apps, replicas, probes, resources, the NodePort
+  through every node and the Grafana Secret. It only reads state (`k8s_info`, `assert`, `uri`, and
+  `setup` over SSH for each VM's IP), so `make verify` now needs SSH to the VMs, like `make cluster`.
+  `make up` = `vms` + `cluster` + `verify`.
 - **Waiting for ArgoCD inside verify:** `site.yml` ends once the root app exists; ArgoCD needs minutes
   more to sync. The slow checks retry with `until`/`retries` (up to 10 minutes for the apps). On a
   healthy cluster they pass on the first try, so `make verify` alone stays fast. A separate wait step
@@ -380,5 +386,34 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **`wait_for_connection` at the start of `site.yml`:** the VMs are created outside Ansible, so the
   playbook first waits until every VM answers over SSH. This is the pattern in the module's own docs
   for freshly created machines. It changes nothing, so `changed=0` still holds.
-- **Not checked:** Prometheus targets and the dashboard. Prometheus is ClusterIP, so reaching it
-  from the host needs a port-forward; B1 is proven by the stage 9 checks and the screenshot.
+- **Node IPs and traffic between VMs (added after the host reboot test):** Hyper-V saves and
+  restores the VMs with Windows (`AutomaticStopAction = Save`), so after a host reboot every VM can
+  have a new IP while K3s keeps running with the old one. Nodes and pods stay Ready, but traffic
+  between VMs breaks. Two checks catch it. Both were written after the incident; the same requests
+  and IPs were seen failing during it, so both would have failed:
+  - each node's InternalIP must equal its VM's current IP (`setup` over SSH). This finds the
+    cause, and its message gives the fix: restart K3s, then CoreDNS. It waits up to 2 minutes,
+    because right after a K3s restart an agent needs about a minute to update its IP.
+  - the frontend NodePort must answer through every node, not only the one running the pod.
+    A request to another node crosses flannel, so this finds the symptom. It retries for half a
+    minute, since kube-proxy and flannel can lag behind ArgoCD on a new cluster.
+  - If a VM's IP can't be read over SSH (VM stopped, or forwarding off after a reboot), verify
+    fails with that message first, instead of a template error.
+- **No check calls Open-Meteo:** it is often overloaded, so a check that depends on it would fail
+  on a healthy cluster. Even "City not found" depends on it: the backend asks Open-Meteo's
+  geocoding API. A real city search stays a manual smoke test in the README.
+- **No `k8s_exec` into the app pods:** a frontend-to-backend check through the pods would need
+  Python run inside the app container. That is a hidden script, not a declared state, and it breaks
+  if the image changes. The app has no endpoint for it, and adding one only for a test would grow
+  the app. The two checks above already fail on this incident.
+- **Not checked:** Prometheus targets and the dashboard (Prometheus is ClusterIP, so reaching it
+  from the host needs a port-forward; B1 is proven by the stage 9 checks and the screenshot), and
+  DNS for external names. A stale CoreDNS upstream comes from the same event, so the node IP check
+  fails while it is there, until K3s is restarted. If K3s is restarted but CoreDNS is not, verify
+  passes while every city search fails. This is a known gap: the README's fix runs both restarts in
+  one block, and checking it would need a lookup of a public name, which depends on internet DNS.
+- **Preventing it instead:** `AutomaticStopAction = ShutDown` would make Windows reboot the VMs for
+  real, so K3s starts fresh. Or `make cluster` could repair it: each K3s role saves the VM's IP in
+  a file on the VM, so a new IP fires the existing restart handler. Neither is done: the first
+  needs an admin PowerShell and resets whenever the VMs are recreated, the second changes the
+  bring-up roles, and both need another reboot test. Both are in the README's "What I'd improve".

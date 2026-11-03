@@ -1,6 +1,16 @@
 # Checks the running cluster against docs/requirements-checklist.md (D-033).
 # Read-only: every task only reads state, so it is safe to run at any time.
 # The slow checks retry, so it also works right after `make cluster`, while ArgoCD is still syncing.
+
+# Each VM's current IP, to compare with the IP Kubernetes has for its node.
+- name: Read each VM's current IP
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather the network facts only
+      ansible.builtin.setup:
+        gather_subset: ["!all", "!min", network]
+
 - name: Verify the cluster
   hosts: localhost
   connection: local
@@ -17,6 +27,17 @@
       skywatch-frontend: 1
 
   tasks:
+    # Without SSH (VM stopped, or forwarding off after a Windows reboot) the first play has no IP.
+    - name: Every VM's IP was read over SSH
+      ansible.builtin.assert:
+        that:
+          - hostvars[item].ansible_default_ipv4 is defined
+        fail_msg: >-
+          Could not read the IP of {{ item }} over SSH. Is the VM running
+          (multipass.exe list), and is forwarding on after a Windows reboot (README, step 2)?
+        quiet: true
+      loop: "{{ groups['all'] }}"
+
     - name: Wait until all 3 nodes are Ready (R2.3)
       kubernetes.core.k8s_info:
         kubeconfig: "{{ kubeconfig_path }}"
@@ -30,6 +51,42 @@
         | list | length == 3
       retries: 30
       delay: 10
+
+    # A host reboot can give a VM a new IP while K3s keeps the old one: Hyper-V restores the
+    # VMs (AutomaticStopAction = Save) instead of rebooting them. Nodes and pods stay Ready,
+    # but traffic between VMs breaks, so these two tasks look for the cause directly.
+    # Right after a K3s restart an agent needs about a minute to update its IP, hence the wait.
+    - name: Wait until the nodes' InternalIPs are the VMs' current IPs
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Node
+      register: verify_node_ips
+      # Both sides as sorted lists: each node's InternalIP, and each VM's IP read over SSH.
+      until: >-
+        verify_node_ips.resources | map(attribute='status.addresses')
+        | map('selectattr', 'type', 'equalto', 'InternalIP') | map('map', attribute='address')
+        | map('first') | sort
+        == groups['all'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | sort
+      retries: 12
+      delay: 10
+      # A mismatch is reported by the next task, per node and with the fix.
+      failed_when: false
+
+    - name: Each node's InternalIP is its VM's current IP
+      vars:
+        verify_node: "{{ verify_node_ips.resources | selectattr('metadata.name', 'equalto', item.split('.')[0]) | first }}"
+        verify_node_ip: "{{ verify_node.status.addresses | selectattr('type', 'equalto', 'InternalIP') | map(attribute='address') | first }}"
+        verify_vm_ip: "{{ hostvars[item].ansible_default_ipv4.address }}"
+      ansible.builtin.assert:
+        that:
+          - verify_node_ip == verify_vm_ip
+        fail_msg: >-
+          {{ item }}: Kubernetes has {{ verify_node_ip }}, but the VM now has {{ verify_vm_ip }}.
+          The VM got a new IP without K3s restarting. Fix, in this order: restart k3s on the server,
+          then k3s-agent on each worker, then run
+          kubectl -n kube-system rollout restart deploy/coredns (see the README, step 2).
+        quiet: true
+      loop: "{{ groups['all'] }}"
 
     - name: Every node runs the pinned K3s version (R2.4)
       ansible.builtin.assert:
@@ -112,10 +169,20 @@
         name: skywatch-frontend
       register: verify_frontend
 
-    - name: The frontend answers from the host on its NodePort (R4.2)
+    # Through every node, not only the one running the frontend: kube-proxy sends a request
+    # that reaches another node across flannel, so this also checks traffic between VMs.
+    # Relies on the default externalTrafficPolicy (Cluster); with Local, other nodes would not answer.
+    - name: The frontend answers on its NodePort through every node (R4.2)
       ansible.builtin.uri:
-        url: "http://{{ groups['workers'][0] }}:{{ verify_frontend.resources[0].spec.ports[0].nodePort }}/healthz"
+        url: "http://{{ item }}:{{ verify_frontend.resources[0].spec.ports[0].nodePort }}/healthz"
         status_code: 200
+        timeout: 5
+      loop: "{{ groups['all'] }}"
+      register: verify_nodeport
+      # kube-proxy and flannel may need a few seconds more than ArgoCD on a new cluster.
+      until: verify_nodeport.status == 200
+      retries: 6
+      delay: 5
 
     - name: Read the Grafana admin Secret
       kubernetes.core.k8s_info:
