@@ -174,35 +174,40 @@ of a new pod. The probe ran before gunicorn was listening; the pod is Ready a mo
 
 ## Open it
 
-First, in **every new terminal**, from the repo root:
+The app is open as soon as `make up` ends. ArgoCD and Grafana are not exposed outside the cluster:
+open each one's port-forward first, in its **own terminal**, from the repo root, and keep it running
+while you use it. Set `KUBECONFIG` in every new terminal before any `kubectl` command:
 
 ```bash
+# Terminal 1: ArgoCD
 export KUBECONFIG=$PWD/kubeconfig
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+
+# Terminal 2: Grafana
+export KUBECONFIG=$PWD/kubeconfig
+kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80
 ```
 
-| | Address | Login |
-|---|---|---|
-| **App** | <http://sw-worker1.mshome.net:30080> | — |
-| **ArgoCD** | <https://localhost:8080> (accept the self-signed certificate) | `admin` + the password command below |
-| **Grafana** | <http://localhost:3000/d/skywatch/skywatch> | the commands below |
+| | Address | Needs | Login |
+|---|---|---|---|
+| **App** | <http://sw-worker1.mshome.net:30080> | nothing (NodePort) | — |
+| **ArgoCD** | <https://localhost:8080> (accept the self-signed certificate) | terminal 1 running | `admin` + the password command below |
+| **Grafana** | <http://localhost:3000/d/skywatch/skywatch> | terminal 2 running | the commands below |
 
 <details>
-<summary>Port-forwards and the commands that read each password</summary>
+<summary>The commands that read each password</summary>
 
-ArgoCD and Grafana are not exposed outside the cluster. Keep a port-forward running in a
-separate terminal (with `KUBECONFIG` set) while you use them.
+Run them in a third terminal, after `export KUBECONFIG=$PWD/kubeconfig`.
 
 **ArgoCD**
 
 ```bash
-kubectl -n argocd port-forward svc/argocd-server 8080:443
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
 **Grafana**: the login is generated at bring-up and stored in the `grafana-admin` Secret.
 
 ```bash
-kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80
 kubectl -n monitoring get secret grafana-admin -o jsonpath='{.data.admin-user}' | base64 -d; echo
 kubectl -n monitoring get secret grafana-admin -o jsonpath='{.data.admin-password}' | base64 -d; echo
 ```
@@ -213,6 +218,8 @@ The dashboard needs traffic: search a few cities in the app first.
 
 - `kubectl` says `localhost:8080 ... connection refused` (or a certificate error): `KUBECONFIG`
   is not set in this terminal. `make cluster` writes `./kubeconfig`, not `~/.kube/config`.
+- `localhost:8080` or `localhost:3000` doesn't open in the browser: its port-forward is not
+  running. Start it again (terminal 1 or 2 above); it also stops when its pod restarts.
 - The app shows "The weather service is unavailable": Open-Meteo is sometimes overloaded.
   The app handles it; retry a bit later.
 
