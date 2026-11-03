@@ -201,6 +201,9 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   (replicas, resources, config), so that change gets no `helm lint`. Plan: run only `helm lint`
   for such changes, without building images.
 - **Working on `main`:** the bot adds a commit after every push, so run `git pull` before the next push.
+- **Docs-only pushes (added at submission):** `paths-ignore` also lists `**.md` and `docs/**`.
+  Before, a README change rebuilt both images, added a bump commit and restarted every pod with the
+  same code. A push that also changes code still runs CI; pull requests are not filtered.
 
 ## D-020 · One Helm chart, no subcharts
 - **Decision:** `charts/skywatch`, one file per resource, shared `_helpers.tpl`, one values block per service.

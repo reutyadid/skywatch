@@ -7,8 +7,12 @@ on:
     branches: [main]
     # The tag-bump commit changes only this file. Together with GITHUB_TOKEN and [skip ci],
     # this keeps the bump from triggering another run (D-019).
+    # Docs-only pushes don't rebuild images or restart pods. A push is skipped only when
+    # every changed file matches a pattern here.
     paths-ignore:
       - charts/skywatch/values.yaml
+      - "**.md"
+      - docs/**
 
 # Runs on the same branch wait for each other, so two fast pushes can't race on the bump.
 concurrency:
