@@ -8,7 +8,12 @@ Bonus focus: observability (Prometheus + Grafana).
 
 - Requirements and proof of each: `docs/requirements-checklist.md`
 - Every design decision and its reasoning: `docs/decisions.md`
-- Work order, layout and current stage: `docs/work-plan.md`
+- Work order, layout and stage status: `docs/work-plan.md`
+
+## Current state
+Built and submitted on 2026-11-03. Every requirement is done and proven (see the checklist).
+Remaining before the live review: the full host reboot test and review drills (S7).
+No new features; changes now are fixes and documentation.
 
 ## Principles (in priority order)
 1. **The assignment text comes first.** If the task names a technology or a fact, follow it.
@@ -65,10 +70,11 @@ make test      # pytest for both services
 - After writing code: explain what every line or block does and why.
 - Never add a dependency, tool or file outside the planned structure without asking.
 - Never edit image tags in `charts/skywatch/values.yaml`; CI owns them.
-- From the ArgoCD stage on: no `kubectl apply` / `helm install` for the app or monitoring. Changes go through Git.
+- No `kubectl apply` / `helm install` for the app or monitoring. Changes go through Git and ArgoCD.
 - When a problem is solved: add an entry to `docs/troubleshooting.md` (symptom, cause, fix).
 - When a decision changes: update `docs/decisions.md` in the same change.
-- Git: stages 1–4 on `dev`; merged to `main` by one PR at the CI stage; after that, directly on `main`.
+- Git: work directly on `main`. The CI bot commits an image-tag bump after every code push, so
+  run `git pull` before the next push. Pushes that change only `*.md` or `docs/**` run no CI.
 - **Never run `git commit` or `git push` yourself.** When a change is ready, stop, list the files
   changed and propose a commit message. The author reviews and commits.
 - Proposed commits are small, one logical change each, in Git's standard style: no type prefix,
