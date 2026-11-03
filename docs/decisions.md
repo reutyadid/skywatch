@@ -114,7 +114,6 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   protects the VMs. Docker Desktop runs inside WSL, so it is turned off while the cluster runs.
 - **Why:** 24 GB installed, 21.9 GB usable (the integrated Radeon Vega GPU takes ~2 GB).
   The CPU is still a 4-core / 8-thread laptop CPU, so expect slow syncs.
-- **If memory gets tight in stage 9:** shorter Prometheus retention, Alertmanager off.
 
 ---
 
@@ -197,9 +196,10 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   Plus a `concurrency` group so two fast pushes don't race on the bump.
 - **Why:** Defense in depth; any one mechanism can be changed by mistake later.
 - **Note:** Branch protection that requires PRs would block the bot push (see D-029).
-- **Revisit at stage 7:** `paths-ignore` also skips CI when a person changes only `values.yaml`
-  (replicas, resources, config), so that change gets no `helm lint`. Plan: run only `helm lint`
-  for such changes, without building images.
+- **Known gap:** `paths-ignore` also skips CI when a person changes only `values.yaml`
+  (replicas, resources, config), so that change gets no `helm lint` before ArgoCD applies it.
+  `make lint` runs it locally, and ArgoCD refuses a chart that does not render. The fix: a second,
+  small workflow that runs only `helm lint` on `charts/**`, without building images.
 - **Working on `main`:** the bot adds a commit after every push, so run `git pull` before the next push.
 - **Docs-only pushes (added at submission):** `paths-ignore` also lists `**.md` and `docs/**`.
   Before, a README change rebuilt both images, added a bump commit and restarted every pod with the
@@ -342,8 +342,8 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **Problems:** documented in `docs/troubleshooting.md` as soon as they are solved. No GitHub Issues:
   for a one-person project they add overhead without value.
 - **Why not a single PR at the end:** CI and GitOps would only be tested at the last moment.
-- **Gotcha if `dev` is kept after the CI stage:** the CI bot commits tag bumps to `main`, so `dev`
-  falls behind and `values.yaml` conflicts. `dev` must be updated from `main` after every merge.
+- **Why `dev` was deleted after the merge:** the CI bot commits tag bumps to `main`, so a kept `dev`
+  would fall behind and conflict on `values.yaml`.
 - **Production:** branch protection with required PRs and reviews; the bot would push through a
   dedicated identity allowed to bypass it, or open its own PR.
 
@@ -352,6 +352,11 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   `git commit` and `git push`, so every commit is reviewed and made by the author.
 - **Why:** The task allows AI but requires understanding every part. The instruction file explains
   what to do; the permission rule enforces it.
+
+## D-031 · Deferred (only if time, in this order)
+1. Ingress or Gateway API through the built-in Traefik.
+2. External Secrets Operator + Vault.
+3. Loki + Alloy for log storage.
 
 ## D-032 · Pod security and resources
 - **Decision:** Every pod runs as UID 10001 (`runAsNonRoot`), with `allowPrivilegeEscalation: false`,
@@ -377,8 +382,3 @@ of one product, built by one pipeline, tagged with one SHA and always released t
   for freshly created machines. It changes nothing, so `changed=0` still holds.
 - **Not checked:** Prometheus targets and the dashboard. Prometheus is ClusterIP, so reaching it
   from the host needs a port-forward; B1 is proven by the stage 9 checks and the screenshot.
-
-## D-031 · Deferred (only if time, in this order)
-1. Ingress or Gateway API through the built-in Traefik.
-2. External Secrets Operator + Vault.
-3. Loki + Alloy for log storage.

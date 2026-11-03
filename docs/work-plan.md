@@ -76,7 +76,6 @@ skywatch/
     ├── requirements-checklist.md
     ├── decisions.md
     ├── work-plan.md
-    ├── architecture.md
     ├── troubleshooting.md
     └── images/
 ```
@@ -95,27 +94,27 @@ make test      pytest for both services
 
 ## Stages
 
-| # | Stage | Done when | Requirements |
-|---|-------|-----------|--------------|
-| 1 | Repo setup (`dev`) | Public repo, layout, CLAUDE.md, settings.json, docs, `constraints.txt` | S1 |
-| 2 | Backend | Runs locally: city → JSON; `/healthz`, `/metrics`; JSON logs; tests pass | R1.3, R1.4, R1.6 |
-| 3 | Frontend | Runs locally against the backend via env URL; metrics; logs | R1.2, R1.6 |
-| 4 | Docker | Both images build; containers talk to each other | R3.1 |
-| 5 | CI | PR `dev` → `main` shows PR checks; push to `main` → GHCR (public) with SHA → values bumped → exactly one run | R3.2–R3.7 |
-| 6 | Cluster (Ansible) | Start-of-stage checks pass; 3 nodes Ready; no app pods on the server; second run `changed=0`; kubectl from WSL | R2.1–R2.7 |
-| 7 | Helm | One manual install works (last manual helm for the app, ever) | R4.1–R4.7 |
-| 8 | ArgoCD | `argocd` role; manual release removed; push reaches cluster | R5.1–R5.4, R4.8, B2 |
-| 9 | Observability | `bootstrap_secrets` role; targets UP, dashboard, alerts | B1–B1.3 |
-| 10 | Bring-up + verify | `make down && make up` works twice in a row; `make verify` green | R2.5, all |
-| 11 | Docs + proof | README complete; screenshots; GitOps recording | S2–S6 |
-| 12 | Stranger test | Fresh clone, fresh VMs, README only | S2 |
-| 13 | If time | Ingress/Gateway API via Traefik → ESO + Vault → Loki | B3, D-031 |
+| # | Stage | Done when | Requirements | Status |
+|---|-------|-----------|--------------|--------|
+| 1 | Repo setup (`dev`) | Public repo, layout, CLAUDE.md, settings.json, docs, `constraints.txt` | S1 | Done |
+| 2 | Backend | Runs locally: city → JSON; `/healthz`, `/metrics`; JSON logs; tests pass | R1.3, R1.4, R1.6 | Done |
+| 3 | Frontend | Runs locally against the backend via env URL; metrics; logs | R1.2, R1.6 | Done |
+| 4 | Docker | Both images build; containers talk to each other | R3.1 | Done |
+| 5 | CI | PR `dev` → `main` shows PR checks; push to `main` → GHCR (public) with SHA → values bumped → exactly one run | R3.2–R3.7 | Done |
+| 6 | Cluster (Ansible) | Start-of-stage checks pass; 3 nodes Ready; no app pods on the server; second run `changed=0`; kubectl from WSL | R2.1–R2.7 | Done |
+| 7 | Helm | One manual install works (last manual helm for the app, ever) | R4.1–R4.7 | Done |
+| 8 | ArgoCD | `argocd` role; manual release removed; push reaches cluster | R5.1–R5.4, R4.8, B2 | Done |
+| 9 | Observability | `bootstrap_secrets` role; targets UP, dashboard, alerts | B1–B1.3 | Done |
+| 10 | Bring-up + verify | `make down && make up` works twice in a row; `make verify` green | R2.5, all | Done |
+| 11 | Docs + proof | README complete; screenshots; GitOps recording | S2–S6 | Done (screenshots instead of a recording) |
+| 12 | Stranger test | Fresh clone, fresh VMs, README only | S2 | Not done: `make down && make up` from the README instead |
+| 13 | If time | Ingress/Gateway API via Traefik → ESO + Vault → Loki | B3, D-031 | Not done: in the README's "What I'd improve" |
 
 ## Host setup (before stage 1)
 - [x] RAM: 24 GB installed (16 + 8), 21.9 GB usable
 - [x] `.wslconfig`: `networkingMode=nat`, `processors=4` (D-003)
 - [x] Raised to `memory=6GB` at stage 4 (Docker builds)
-- [ ] After every host reboot: enable forwarding between WSL and the Default Switch (D-003, README)
+- After every host reboot: enable forwarding between WSL and the Default Switch (D-003, README)
 - [x] `make` installed in WSL
 - [x] `python3.12-venv` installed in WSL
 - [x] Project lives in the WSL filesystem (`~/projects/skywatch`), not under `/mnt/c`
@@ -155,7 +154,7 @@ Done right after `create-vms.sh` and `cloud-init/base.yaml` work.
 - Small commits, one logical change each, in Git's standard style. The author commits, never the AI.
 - From stage 8 on: no manual `kubectl apply` / `helm` for the app or monitoring.
 
-## Review-session drills (before submitting)
+## Review-session drills (before the review session)
 - Change frontend text → watch it flow through CI and ArgoCD.
 - Re-run the Ansible playbook on a healthy cluster → `changed=0`, and explain why.
 - Break an image tag → debug `ImagePullBackOff`.
