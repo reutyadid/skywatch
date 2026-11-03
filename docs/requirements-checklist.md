@@ -1,17 +1,17 @@
 # Requirements checklist
 
 Every requirement from the assignment, where it is implemented, and how it is proven.
-Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
+Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven · `[-]` skipped (optional).
 
 ## 1. Application
 
 | ID | Requirement | Where | Proof | Status |
 |----|-------------|-------|-------|--------|
 | R1.1 | Two small services in Python (or Go) | `apps/frontend`, `apps/backend` | Repo layout | [x] |
-| R1.2 | Flask frontend: city input, shows current temperature and conditions | `apps/frontend/app.py`, `templates/` | Screenshot of a result in the browser (`docs/images/image.png`) | [x] |
+| R1.2 | Flask frontend: city input, shows current temperature and conditions | `apps/frontend/app.py`, `templates/` | Screenshot of a result in the browser, served from the cluster (`docs/images/gitops-code-after.png`) | [x] |
 | R1.3 | Backend HTTP API: takes a city, calls Open-Meteo (geocoding + forecast), returns the result | `apps/backend/app.py` | `curl` to the backend endpoint returns JSON | [x] |
 | R1.4 | Backend health endpoint | `apps/backend/app.py` (`/healthz`) | `curl /healthz` returns 200 | [x] |
-| R1.5 | Minimal code | Both services | Review | [ ] |
+| R1.5 | Minimal code | Both services | Review: backend 226 lines, frontend 157, in clear sections | [x] |
 | R1.6 | Configuration from environment variables (incl. backend URL) | `app.py` config section, ConfigMaps | `grep os.getenv`, ConfigMap contents | [x] |
 
 ## 2. Cluster provisioning (Path A)
@@ -50,7 +50,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | R4.6 | Readiness and liveness probes on every container | Deployments | Proven manually: rendered Deployments, pods Ready. Checked on every `make up` by `verify.yml` | [x] |
 | R4.7 | Resource requests and limits on every container | Deployments | Proven manually: rendered Deployments, `kubectl top`. Checked on every `make up` by `verify.yml` | [x] |
 | R4.8 | No plaintext secrets in Git | K3s token read at run time (`roles/k3s_agent`); Grafana Secret from `roles/bootstrap_secrets` (stage 9) | `git grep` finds no secret values | [x] |
-| R4.9 | Secret handling approach explained ("Explain your approach") | README section (stage 11), details in D-008, D-023 | README | [ ] |
+| R4.9 | Secret handling approach explained ("Explain your approach") | README "Secret handling", details in D-008, D-023 | README | [x] |
 
 ## 5. GitOps with ArgoCD
 
@@ -70,18 +70,18 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven.
 | B1.2 | Dashboard (as code) | `grafana-dashboard.yaml` | Dashboard screenshot (`docs/images/grafana-dashboard.png`) | [x] |
 | B1.3 | Alerts | `prometheusrule.yaml` | 5 SkyWatch rules loaded in Prometheus, health `ok` | [x] |
 | B2 | ArgoCD app-of-apps for add-ons | `argocd/root-app.yaml` | ArgoCD UI tree | [x] |
-| B3 | Ingress / Gateway API via Traefik instead of NodePort (end, if time) | TBD | Browser via hostname | [ ] |
+| B3 | Ingress / Gateway API via Traefik instead of NodePort (end, if time) | — | Not done: listed in README "What I'd improve" | [-] |
 
 ## Submission
 
 | ID | Requirement | Where | Proof | Status |
 |----|-------------|-------|-------|--------|
 | S1 | Public GitHub repo with all code, manifests, playbooks, pipelines | GitHub | Repo is public | [x] |
-| S2 | README: chosen path + step-by-step bring-up from scratch | `README.md` | Stranger test passes | [ ] |
-| S3 | README: architecture overview and key decisions | `README.md`, `docs/architecture.md` | Document | [ ] |
-| S4 | README: problems encountered and solutions | README summary (stage 11), linking `docs/troubleshooting.md` | README | [ ] |
-| S5 | README: what to improve with more time | `README.md` | Document | [ ] |
-| S6 | README: proof of the GitOps flow | `docs/images/` | Screenshots / recording | [ ] |
+| S2 | README: chosen path + step-by-step bring-up from scratch | `README.md` "Bring it up in 3 steps" | `make down && make up` from the README steps passed twice (stage 10) | [x] |
+| S3 | README: architecture overview and key decisions | `README.md` "Architecture", "Key design decisions" | README | [x] |
+| S4 | README: problems encountered and solutions | README "Problems and solutions", linking `docs/troubleshooting.md` | README | [x] |
+| S5 | README: what to improve with more time | `README.md` "What I'd improve with more time" | README | [x] |
+| S6 | README: proof of the GitOps flow | README "Proof of the GitOps flow", `docs/images/` | Screenshots of a code change and a config change | [x] |
 | S7 | Able to explain every part live | Whole repo | Review-session drills | [ ] |
 | S8 | Submitted within 7 days | — | Date | [ ] |
 
