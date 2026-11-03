@@ -186,7 +186,7 @@ FAILED - RETRYING: [localhost]: Wait until the ArgoCD apps are Synced and Health
 and then ends with:
 
 ```
-localhost                  : ok=15   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+localhost                  : ok=14   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 sw-server.mshome.net       : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 sw-worker1.mshome.net      : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 sw-worker2.mshome.net      : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0

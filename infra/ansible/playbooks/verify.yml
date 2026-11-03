@@ -112,13 +112,6 @@
       retries: 60
       delay: 10
 
-    - name: Read the server node
-      kubernetes.core.k8s_info:
-        kubeconfig: "{{ kubeconfig_path }}"
-        kind: Node
-        name: "{{ verify_server_node }}"
-      register: verify_server
-
     - name: Read the app pods
       kubernetes.core.k8s_info:
         kubeconfig: "{{ kubeconfig_path }}"
@@ -127,10 +120,13 @@
       register: verify_pods
 
     - name: The server is tainted and runs no app pods (R2.7)
+      vars:
+        # The server node, from the nodes read at the start.
+        verify_server: "{{ verify_nodes.resources | selectattr('metadata.name', 'equalto', verify_server_node) | first }}"
       ansible.builtin.assert:
         that:
           - >-
-            verify_server.resources[0].spec.taints | default([])
+            verify_server.spec.taints | default([])
             | selectattr('key', 'equalto', 'node-role.kubernetes.io/control-plane')
             | selectattr('effect', 'equalto', 'NoSchedule') | list | length == 1
           - verify_pods.resources | map(attribute='spec.nodeName') | select('equalto', verify_server_node) | list == []
