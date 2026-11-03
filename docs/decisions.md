@@ -149,9 +149,12 @@ of one product, built by one pipeline, tagged with one SHA and always released t
 - **Why:** Each layer must wait longer than the one below it, so failures surface as clear errors.
   The real request limits are the two HTTP client timeouts. With threaded workers, gunicorn's
   timeout only checks that the worker process is alive; it does not limit a single request.
-- **Known limitation:** The backend makes two Open-Meteo calls, each with its own 5s limit. If both
-  are slow, it can take about 10s and hit the frontend's limit, so the frontend shows a timeout
-  instead of the backend's error. Accepted: it is rare and still fails cleanly.
+- **Known limitation:** The backend makes two Open-Meteo calls in a row. The 5s `requests`
+  timeout limits connecting and each wait for data, not the whole call, so a slow upstream can
+  keep one backend request busy past the frontend's 10s. The frontend then shows a timeout
+  instead of the backend's error, and that backend thread stays busy until Open-Meteo answers.
+  Accepted: it is rare and still fails cleanly for the user. With more time: a total deadline
+  per request, and more threads, so slow calls can't fill all four and delay `/healthz`.
 
 ## D-015 · Shared constraints file for dependency versions
 - **Decision:** `requirements/constraints.txt` pins every version. Each service has its own
