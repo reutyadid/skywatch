@@ -2,7 +2,8 @@
 # Deletes the 3 SkyWatch VMs, and only those. Safe to run again: missing VMs are skipped.
 set -euo pipefail
 
-MULTIPASS="multipass.exe"
+# multipass.exe when run from WSL; set MULTIPASS=multipass on native Linux or macOS.
+MULTIPASS="${MULTIPASS:-multipass.exe}"
 VMS=(sw-server sw-worker1 sw-worker2)
 
 for name in "${VMS[@]}"; do
