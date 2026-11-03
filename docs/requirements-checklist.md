@@ -83,7 +83,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and proven · `[-]`
 | S5 | README: what to improve with more time | `README.md` "What I'd improve with more time" | README | [x] |
 | S6 | README: proof of the GitOps flow | README "Proof of the GitOps flow", `docs/images/` | Screenshots of a code change and a config change | [x] |
 | S7 | Able to explain every part live | Whole repo | Review-session drills | [ ] |
-| S8 | Submitted within 7 days | — | Date | [ ] |
+| S8 | Submitted within 7 days | — | Submitted on 2026-11-03 | [x] |
 
 ## Evaluation criteria → covered by
 
